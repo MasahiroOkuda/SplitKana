@@ -7,6 +7,10 @@
 *.xcscheme  text eol=lf
 *.xcworkspacedata text eol=lf
 
+# Windows のバッチだけは CRLF。cmd は LF だけの .bat を行の途中で切ってしまう。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
 # 画像・アイコンなど（まだ無いが、フェーズ2以降で入る）
 *.png  binary
 *.jpg  binary

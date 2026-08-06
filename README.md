@@ -62,13 +62,18 @@ SplitKana/
 Core は Foundation しか使わないので、Mac がなくてもロジックのテストは全部走る。
 
 ```bash
-swift test --package-path Packages/SplitKanaKit
+scripts\swift-test.bat
 ```
 
-`SplitKanaUI` は中身が `#if canImport(SwiftUI)` で囲んであるため、
-SwiftUI の無い環境では空モジュールとしてビルドが通る（テスト対象にも入らない）。
+**動作確認済み**：Swift 6.3.3 / VS Build Tools 17.14 / Windows SDK 10.0.26100 で36テスト全パス。
 
-Windows での toolchain の入れ方は [docs/windows-swift.md](docs/windows-swift.md)。
+素の `swift test` は Windows では通らない（`link.exe`・`SDKROOT`・index store の3点で失敗する）。
+スクリプトはそれを吸収しているだけで、中身と理由は
+[docs/windows-swift.md](docs/windows-swift.md) に書いてある。toolchain の入れ方も同じファイル。
+
+`SplitKanaUI` は中身が `#if canImport(SwiftUI)` で囲んであるため、
+SwiftUI の無い環境では空モジュールとしてビルドが通る。
+**裏を返すと UI のコンパイルエラーは Windows では出ない。**そこは Mac の仕事。
 
 ## フェーズ1でやること
 
