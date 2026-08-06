@@ -1,0 +1,13 @@
+# 改行はリポジトリでも作業コピーでも LF に揃える。
+# Windows で書いて Mac でビルドするため、どちらで触っても差分が汚れないようにする。
+* text=auto eol=lf
+
+# Xcode が生成・書き換えるファイル。テキストだが競合しやすいので明示しておく。
+*.pbxproj   text eol=lf
+*.xcscheme  text eol=lf
+*.xcworkspacedata text eol=lf
+
+# 画像・アイコンなど（まだ無いが、フェーズ2以降で入る）
+*.png  binary
+*.jpg  binary
+*.pdf  binary
