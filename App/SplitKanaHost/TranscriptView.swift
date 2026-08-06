@@ -1,12 +1,12 @@
 import SwiftUI
-import SplitKanaKit
+import SplitKanaCore
 
 /// 打った文字を見せるだけのビュー。キーボードの中央の空きに置く。
 struct TranscriptView: View {
 
     let buffer: KanaTextBuffer
     let stats: TypingStats
-    let lastCustomOutput: String?
+    let notice: String?
     let onClear: () -> Void
 
     var body: some View {
@@ -30,12 +30,10 @@ struct TranscriptView: View {
     }
 
     private var text: some View {
-        let before = buffer.contextBeforeCursor
-        let after = String(buffer.text.dropFirst(buffer.cursor))
-        return (
-            Text(before)
+        (
+            Text(buffer.contextBeforeCursor)
             + Text("|").foregroundColor(.accentColor)
-            + Text(after)
+            + Text(buffer.contextAfterCursor)
         )
         .font(.system(size: 22))
         .lineSpacing(4)
@@ -58,9 +56,10 @@ struct TranscriptView: View {
 
     private var footer: some View {
         HStack {
-            Text(lastCustomOutput.map { "custom: \($0)" } ?? " ")
+            Text(notice ?? " ")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Spacer(minLength: 0)
         }
     }

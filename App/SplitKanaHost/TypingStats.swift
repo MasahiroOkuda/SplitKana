@@ -1,5 +1,5 @@
 import Foundation
-import SplitKanaKit
+import SplitKanaCore
 
 /// フェーズ1で測るもの：文字/分、削除キーの回数、届かないキーの有無（SPEC 7）。
 /// 「届かないキー」は打っていて気づくしかないので、ここでは前2つだけ数える。

@@ -1,4 +1,4 @@
-import CoreGraphics
+import Foundation
 
 /// ホストから受け取る設定（SPEC 2.2 / 3.1）。
 public struct KeyboardConfiguration: Equatable, Sendable {
@@ -51,25 +51,26 @@ public struct KeyboardConfiguration: Equatable, Sendable {
 
 public extension KeyboardConfiguration {
 
-    /// 思考整理アプリ／確認用ホスト向けの機能列（SPEC 2.2）。
-    static var hostApp: KeyboardConfiguration {
-        KeyboardConfiguration(functionColumn: [
-            FunctionKey(title: "結ぶ", output: .custom("connect")),
-            FunctionKey(title: "囲む", output: .custom("enclose")),
-            FunctionKey(title: "選ぶ", output: .custom("select")),
-            FunctionKey(title: "英数", output: .custom("alphanumeric"))
-        ])
-    }
-
-    /// キーボード拡張向けの機能列（SPEC 2.2）。フェーズ2で使う。
+    /// キーボード拡張向けの機能列（SPEC 2.2）。
     ///
-    /// 地球キーは拡張では必須。カーソルキーは `adjustTextPosition(byCharacterOffset:)` に落とす。
+    /// 地球キーは拡張では必須。カーソルキーは両手が塞がった状態で動かせるので、
+    /// 確認用ホストでもこの構成を使う（🌐 と英数はホストでは表示のみ）。
     static var keyboardExtension: KeyboardConfiguration {
         KeyboardConfiguration(functionColumn: [
             FunctionKey(title: "🌐", output: .nextInputMode),
             FunctionKey(title: "英数", output: .custom("alphanumeric")),
             FunctionKey(title: "◀", output: .cursor(-1)),
             FunctionKey(title: "▶", output: .cursor(1))
+        ])
+    }
+
+    /// 思考整理アプリ向けの機能列（SPEC 2.2）。フェーズ5以降で使う。
+    static var thinkingApp: KeyboardConfiguration {
+        KeyboardConfiguration(functionColumn: [
+            FunctionKey(title: "結ぶ", output: .custom("connect")),
+            FunctionKey(title: "囲む", output: .custom("enclose")),
+            FunctionKey(title: "選ぶ", output: .custom("select")),
+            FunctionKey(title: "英数", output: .custom("alphanumeric"))
         ])
     }
 }

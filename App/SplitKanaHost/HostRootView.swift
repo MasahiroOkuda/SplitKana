@@ -1,12 +1,15 @@
 import SwiftUI
-import SplitKanaKit
+import SplitKanaCore
+import SplitKanaUI
 
 struct HostRootView: View {
 
     @State private var buffer = KanaTextBuffer()
     @State private var stats = TypingStats()
-    @State private var lastCustomOutput: String?
-    @State private var configuration = KeyboardConfiguration.hostApp
+    @State private var notice: String?
+    /// 機能列は拡張と同じ 🌐 / 英数 / ◀ / ▶。
+    /// ◀▶ はここで効く。🌐 と英数はフェーズ1では表示のみ。
+    @State private var configuration = KeyboardConfiguration.keyboardExtension
 
     var body: some View {
         GeometryReader { proxy in
@@ -24,7 +27,7 @@ struct HostRootView: View {
                 TranscriptView(
                     buffer: buffer,
                     stats: stats,
-                    lastCustomOutput: lastCustomOutput,
+                    notice: notice,
                     onClear: clear
                 )
                 .frame(width: region.width, height: region.height)
@@ -56,21 +59,31 @@ struct HostRootView: View {
 
     private func handle(_ output: KeyOutput) {
         stats.record(output)
+
         if buffer.apply(output) {
-            lastCustomOutput = nil
+            notice = nil
             return
         }
-        // バッファが扱わない出力（機能列の custom など）はホストの仕事。
-        // フェーズ1では受け取ったことを見せるだけにする。
-        if case .custom(let name) = output {
-            lastCustomOutput = name
+
+        // バッファが扱わない出力。フェーズ1では受け取ったことを見せるだけ。
+        switch output {
+        case .nextInputMode:
+            notice = "🌐 はキーボード拡張でのみ動く（フェーズ2）"
+        case .custom("alphanumeric"):
+            notice = "英数モードは未実装"
+        case .custom(let name):
+            notice = "custom: \(name)"
+        case .dakuten:
+            notice = nil   // 巡回対象でない文字。無反応でよい
+        default:
+            notice = nil
         }
     }
 
     private func clear() {
         buffer.reset()
         stats.reset()
-        lastCustomOutput = nil
+        notice = nil
     }
 }
 

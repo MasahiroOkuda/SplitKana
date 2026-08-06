@@ -1,3 +1,5 @@
+import Foundation
+
 /// フリック表（SPEC 2.3）。並びは 中央 / 左 / 上 / 右 / 下。
 public enum FlickTable {
     public static let a           = FlickSet("あ", "い", "う", "え", "お")

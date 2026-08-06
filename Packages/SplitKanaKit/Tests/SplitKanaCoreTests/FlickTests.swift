@@ -1,6 +1,6 @@
 import XCTest
-import CoreGraphics
-@testable import SplitKanaKit
+import Foundation
+@testable import SplitKanaCore
 
 final class FlickTests: XCTestCase {
 
@@ -22,7 +22,7 @@ final class FlickTests: XCTestCase {
 
     func testBelowThresholdIsCenter() {
         let threshold: CGFloat = 18
-        XCTAssertEqual(FlickResolver.direction(translation: .zero, threshold: threshold), .center)
+        XCTAssertEqual(FlickResolver.direction(translation: CGSize(width: 0, height: 0), threshold: threshold), .center)
         XCTAssertEqual(FlickResolver.direction(translation: CGSize(width: 17, height: 17), threshold: threshold), .center)
         XCTAssertEqual(FlickResolver.direction(translation: CGSize(width: -17, height: 0), threshold: threshold), .center)
     }

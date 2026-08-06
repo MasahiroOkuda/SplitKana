@@ -1,4 +1,4 @@
-import CoreGraphics
+import Foundation
 
 public struct SafeAreaInsets: Equatable, Sendable {
     public var leading: CGFloat
@@ -21,7 +21,7 @@ public enum PanelSide: String, Sendable {
     case unified
 }
 
-/// フリックポップアップの開く向き。**必ずキーボードの外側（中央の空き）へ開く**（SPEC 2.3）。
+/// フリックポップアップの開く向き。**必ずキーボードの外側（中央の空き）へ**（SPEC 2.3）。
 public enum PopupSide: String, Sendable {
     case leading
     case trailing
@@ -43,6 +43,13 @@ public struct PanelGeometry: Identifiable, Sendable {
     /// コンテナ座標での矩形
     public let frame: CGRect
     public let keys: [PlacedKey]
+}
+
+/// フリックポップアップの置き場所。コンテナ座標。
+public struct PopupPlacement: Equatable, Sendable {
+    public let rect: CGRect
+    public let itemWidth: CGFloat
+    public let itemHeight: CGFloat
 }
 
 /// 毎回コンテナ寸法から計算するレイアウト結果（SPEC 3.1）。
@@ -83,7 +90,71 @@ public struct KeyboardGeometry: Sendable {
         let width = max(0, right.frame.minX - gapX - x)
         return CGRect(x: x, y: 0, width: width, height: containerSize.height)
     }
+
+    public func panel(containing keyID: String) -> PanelGeometry? {
+        panels.first { panel in panel.keys.contains { $0.id == keyID } }
+    }
 }
+
+// MARK: - ポップアップの置き場所
+
+public extension KeyboardGeometry {
+
+    /// フリックポップアップは**押したキーの隣ではなく、パネルの内側端に固定する**。
+    ///
+    /// 隣に開くと、右パネルの さ列 のポップアップが か列・あ列を覆ってしまう。
+    /// パネルの外（中央の空き）に固定すれば、どのキーを押してもキーは一切隠れない。
+    /// 中央の空きに収まるよう1項目の幅を詰めるので、はみ出すこともない。
+    ///
+    /// 統合レイアウト（iPhone 縦）には中央の空きがないので、そこだけは従来どおりキーの隣に開き、
+    /// 画面外へ出ないようにクランプする。
+    func popupPlacement(for key: PlacedKey, itemCount: Int) -> PopupPlacement? {
+        guard itemCount > 0, let panel = panel(containing: key.id) else { return nil }
+
+        let padding = SplitKanaTuning.popupPadding
+        let itemHeight = min(keyWidth, keyHeight) * SplitKanaTuning.popupItemRatio
+
+        let available = isSplit
+            ? centerGap - gapX * 2
+            : containerSize.width - gapX * 2
+        let itemWidth = min(
+            keyWidth * SplitKanaTuning.popupItemRatio,
+            (available - padding * 2) / CGFloat(itemCount)
+        )
+        guard itemWidth > 0 else { return nil }
+
+        let width = itemWidth * CGFloat(itemCount) + padding * 2
+        let height = itemHeight + padding * 2
+
+        let x: CGFloat
+        if isSplit {
+            // パネルの内側端に固定。キーの位置によらず動かない。
+            switch key.popupSide {
+            case .trailing: x = panel.frame.maxX + gapX
+            case .leading:  x = panel.frame.minX - gapX - width
+            }
+        } else {
+            let unclamped: CGFloat
+            switch key.popupSide {
+            case .trailing: unclamped = panel.frame.minX + key.rect.maxX + gapX
+            case .leading:  unclamped = panel.frame.minX + key.rect.minX - gapX - width
+            }
+            x = min(max(unclamped, 0), max(0, containerSize.width - width))
+        }
+
+        // 縦はキーの行に合わせるが、パネルの上下からは出さない。
+        let desiredY = panel.frame.minY + key.rect.midY - height / 2
+        let y = min(max(desiredY, panel.frame.minY), max(panel.frame.minY, panel.frame.maxY - height))
+
+        return PopupPlacement(
+            rect: CGRect(x: x, y: y, width: width, height: height),
+            itemWidth: itemWidth,
+            itemHeight: itemHeight
+        )
+    }
+}
+
+// MARK: - 組み立て
 
 public extension KeyboardGeometry {
 

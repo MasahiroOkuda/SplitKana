@@ -3,7 +3,6 @@ import Foundation
 /// `KeyOutput` を素朴なテキストバッファに適用する。
 ///
 /// 拡張は `UITextDocumentProxy` を使うのでこれを通らない。アプリ側（および確認用ホスト）専用。
-/// `UIKit` に一切依存しないため、ここに置いても SPEC 1 の責務境界は破らない。
 public struct KanaTextBuffer: Equatable, Sendable {
 
     public private(set) var text: String
@@ -22,6 +21,10 @@ public struct KanaTextBuffer: Equatable, Sendable {
     /// カーソル手前の文字列（拡張の `documentContextBeforeInput` に相当）。
     public var contextBeforeCursor: String {
         String(text.prefix(cursor))
+    }
+
+    public var contextAfterCursor: String {
+        String(text.dropFirst(cursor))
     }
 
     /// 適用したら true。`custom` / `nextInputMode` はホストの仕事なので false を返して素通しする。

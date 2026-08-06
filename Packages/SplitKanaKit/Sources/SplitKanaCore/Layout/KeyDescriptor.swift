@@ -1,3 +1,5 @@
+import Foundation
+
 /// 左の機能列に挿す1キー（SPEC 2.2）。ホストによって中身が変わる。
 public struct FunctionKey: Equatable, Sendable {
     public let title: String

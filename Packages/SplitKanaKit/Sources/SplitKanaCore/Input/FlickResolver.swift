@@ -1,4 +1,4 @@
-import CoreGraphics
+import Foundation
 
 /// 実機で調整が要る定数（SPEC 2.3 / 10 / 11）。散らさずここに集める。
 public enum SplitKanaTuning {
@@ -13,6 +13,12 @@ public enum SplitKanaTuning {
 
     /// 画面に収めるために縮めてよい下限。ここを割るなら分割をやめて統合レイアウトへ落とす。
     public static let minimumSplitScale: CGFloat = 0.80
+
+    /// ポップアップの1項目の大きさ（キー寸法に対する比率）。
+    public static let popupItemRatio: CGFloat = 0.86
+
+    /// ポップアップの内側余白。左右・上下に同じだけ入る。
+    public static let popupPadding: CGFloat = 4
 }
 
 /// ドラッグ量からフリック方向を決める。

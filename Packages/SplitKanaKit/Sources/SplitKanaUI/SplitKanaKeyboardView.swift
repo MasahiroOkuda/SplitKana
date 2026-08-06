@@ -1,4 +1,6 @@
+#if canImport(SwiftUI)
 import SwiftUI
+import SplitKanaCore
 
 /// 分割かなキーボード本体。
 ///
@@ -13,7 +15,8 @@ public struct SplitKanaKeyboardView: View {
     private let palette: KeyPalette
     private let onOutput: (KeyOutput) -> Void
 
-    @State private var activeKeyID: String?
+    @State private var activeKey: PlacedKey?
+    @State private var activeDirection: FlickDirection = .center
 
     public init(
         geometry: KeyboardGeometry,
@@ -33,10 +36,14 @@ public struct SplitKanaKeyboardView: View {
                 panelView(panel)
                     .frame(width: panel.frame.width, height: panel.frame.height)
                     .offset(x: panel.frame.minX, y: panel.frame.minY)
-                    .zIndex(panel.keys.contains { $0.id == activeKeyID } ? 1 : 0)
             }
+            // ポップアップはパネルより上のレイヤに1つだけ描く。
+            // パネルの外側に固定されるので、どのキーにも重ならない。
+            popupLayer
         }
-        .frame(width: geometry.containerSize.width, height: geometry.containerSize.height, alignment: .topLeading)
+        .frame(width: geometry.containerSize.width,
+               height: geometry.containerSize.height,
+               alignment: .topLeading)
     }
 
     private func panelView(_ panel: PanelGeometry) -> some View {
@@ -44,14 +51,33 @@ public struct SplitKanaKeyboardView: View {
             ForEach(panel.keys) { placed in
                 KeyView(
                     placed: placed,
-                    gap: geometry.gapX,
                     flickThreshold: configuration.flickThreshold,
                     palette: palette,
                     onOutput: onOutput,
-                    onActiveChange: { activeKeyID = $0 }
+                    onFlickChange: { key, direction in
+                        activeKey = key
+                        activeDirection = direction
+                    }
                 )
-                .zIndex(placed.id == activeKeyID ? 1 : 0)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var popupLayer: some View {
+        if let activeKey = activeKey,
+           let flickSet = activeKey.key.kind.flickSet,
+           let placement = geometry.popupPlacement(for: activeKey, itemCount: flickSet.assigned.count) {
+            FlickPopupView(
+                flickSet: flickSet,
+                selected: activeDirection,
+                itemWidth: placement.itemWidth,
+                itemHeight: placement.itemHeight,
+                palette: palette
+            )
+            .frame(width: placement.rect.width, height: placement.rect.height)
+            .offset(x: placement.rect.minX, y: placement.rect.minY)
+            .allowsHitTesting(false)
         }
     }
 }
@@ -90,3 +116,4 @@ public struct AutoSplitKanaKeyboardView: View {
         }
     }
 }
+#endif

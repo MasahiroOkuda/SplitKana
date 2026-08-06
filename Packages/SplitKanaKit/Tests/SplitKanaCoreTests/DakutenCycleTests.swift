@@ -1,5 +1,5 @@
 import XCTest
-@testable import SplitKanaKit
+@testable import SplitKanaCore
 
 final class DakutenCycleTests: XCTestCase {
 
@@ -45,6 +45,12 @@ final class DakutenCycleTests: XCTestCase {
         for character: Character in ["な", "に", "ま", "ら", "を", "ん", "ー", "、", "A"] {
             XCTAssertNil(DakutenCycle.next(after: character), "\(character) が巡回してしまう")
         }
+    }
+
+    func testCyclingLastCharacterOfString() {
+        XCTAssertEqual(DakutenCycle.cyclingLastCharacter(of: "あつ"), "っ")
+        XCTAssertNil(DakutenCycle.cyclingLastCharacter(of: "あな"))
+        XCTAssertNil(DakutenCycle.cyclingLastCharacter(of: ""))
     }
 
     private let smallForms: Set<Character> = ["ぁ", "ぃ", "ぅ", "ぇ", "ぉ", "っ", "ゃ", "ゅ", "ょ", "ゎ"]

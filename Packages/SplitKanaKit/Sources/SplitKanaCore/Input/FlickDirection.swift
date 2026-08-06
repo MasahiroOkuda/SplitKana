@@ -1,4 +1,4 @@
-import CoreGraphics
+import Foundation
 
 /// フリック方向。並び順は SPEC 2.3 の表記順（中央 / 左 / 上 / 右 / 下）。
 public enum FlickDirection: String, CaseIterable, Sendable {

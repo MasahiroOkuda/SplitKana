@@ -1,19 +1,26 @@
 import XCTest
-import CoreGraphics
-@testable import SplitKanaKit
+import Foundation
+@testable import SplitKanaCore
 
 final class KeyboardGeometryTests: XCTestCase {
 
-    private let config = KeyboardConfiguration.hostApp
+    private let config = KeyboardConfiguration.keyboardExtension
 
-    private func geometry(_ size: CGSize, isPad: Bool, configuration: KeyboardConfiguration? = nil) -> KeyboardGeometry {
+    private func geometry(
+        _ size: CGSize,
+        isPad: Bool,
+        safeArea: SafeAreaInsets = .zero,
+        configuration: KeyboardConfiguration? = nil
+    ) -> KeyboardGeometry {
         KeyboardGeometry.make(
             containerSize: size,
-            safeArea: SafeAreaInsets(leading: 0, trailing: 0, bottom: 0),
+            safeArea: safeArea,
             isPad: isPad,
             configuration: configuration ?? config
         )
     }
+
+    // MARK: - 分割の成立
 
     func testPhoneLandscapeSplits() {
         let g = geometry(CGSize(width: 844, height: 390), isPad: false)
@@ -35,14 +42,7 @@ final class KeyboardGeometryTests: XCTestCase {
     }
 
     func testPanelsFitInsideContainer() {
-        let sizes: [(CGSize, Bool)] = [
-            (CGSize(width: 844, height: 390), false),
-            (CGSize(width: 390, height: 844), false),
-            (CGSize(width: 820, height: 1180), true),
-            (CGSize(width: 1180, height: 820), true),
-            (CGSize(width: 507, height: 1180), true)   // iPad Split View
-        ]
-        for (size, isPad) in sizes {
+        for (size, isPad) in Self.deviceSizes {
             let g = geometry(size, isPad: isPad)
             for panel in g.panels {
                 XCTAssertGreaterThanOrEqual(panel.frame.minX, 0, "\(size) ではみ出し")
@@ -55,6 +55,8 @@ final class KeyboardGeometryTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - 複製列
 
     func testDuplicateColumnIsOnlyTheRightPanelsFirstColumn() {
         let g = geometry(CGSize(width: 1180, height: 820), isPad: true)
@@ -75,7 +77,7 @@ final class KeyboardGeometryTests: XCTestCase {
     }
 
     func testThreeColumnRightPanelDropsDuplicates() {
-        var configuration = KeyboardConfiguration.hostApp
+        var configuration = config
         configuration.showsDuplicateColumn = false
         let g = geometry(CGSize(width: 844, height: 390), isPad: false, configuration: configuration)
         let right = g.panels.first { $0.side == .right }!
@@ -83,13 +85,7 @@ final class KeyboardGeometryTests: XCTestCase {
         XCTAssertEqual(Set(right.keys.map { $0.rect.minX }).count, 3)
     }
 
-    func testPopupsOpenTowardTheCentre() {
-        let g = geometry(CGSize(width: 844, height: 390), isPad: false)
-        let left = g.panels.first { $0.side == .left }!
-        let right = g.panels.first { $0.side == .right }!
-        XCTAssertTrue(left.keys.allSatisfy { $0.popupSide == .trailing })
-        XCTAssertTrue(right.keys.allSatisfy { $0.popupSide == .leading })
-    }
+    // MARK: - 寸法モデル
 
     func testNewlineSpansTwoRows() {
         let g = geometry(CGSize(width: 844, height: 390), isPad: false)
@@ -120,13 +116,10 @@ final class KeyboardGeometryTests: XCTestCase {
     }
 
     func testSafeAreaShiftsPanelOrigins() {
-        let plain = geometry(CGSize(width: 844, height: 390), isPad: false)
-        let notched = KeyboardGeometry.make(
-            containerSize: CGSize(width: 844, height: 390),
-            safeArea: SafeAreaInsets(leading: 59, trailing: 59, bottom: 21),
-            isPad: false,
-            configuration: config
-        )
+        let size = CGSize(width: 844, height: 390)
+        let plain = geometry(size, isPad: false)
+        let notched = geometry(size, isPad: false,
+                               safeArea: SafeAreaInsets(leading: 59, trailing: 59, bottom: 21))
         let plainLeft = plain.panels.first { $0.side == .left }!
         let notchedLeft = notched.panels.first { $0.side == .left }!
         XCTAssertGreaterThan(notchedLeft.frame.minX, plainLeft.frame.minX)
@@ -134,9 +127,95 @@ final class KeyboardGeometryTests: XCTestCase {
     }
 
     func testScaleIsClampedToTheAllowedRange() {
-        var configuration = KeyboardConfiguration.hostApp
+        var configuration = config
         configuration.scale = 5
         let g = geometry(CGSize(width: 1180, height: 820), isPad: true, configuration: configuration)
         XCTAssertLessThanOrEqual(g.appliedScale, KeyboardConfiguration.scaleRange.upperBound)
+    }
+
+    // MARK: - ポップアップの置き場所
+
+    func testPopupNeverCoversAnyKey() {
+        for (size, isPad) in Self.deviceSizes where isPad || size.width > size.height {
+            let g = geometry(size, isPad: isPad,
+                             safeArea: SafeAreaInsets(leading: 59, trailing: 59, bottom: 21))
+            guard g.isSplit else { continue }
+            for panel in g.panels {
+                for key in panel.keys {
+                    guard let flickSet = key.key.kind.flickSet else { continue }
+                    let placement = g.popupPlacement(for: key, itemCount: flickSet.assigned.count)
+                    XCTAssertNotNil(placement, "\(size) の \(key.id) でポップアップが置けない")
+                    guard let rect = placement?.rect else { continue }
+                    for other in g.panels {
+                        XCTAssertFalse(Self.overlaps(rect, other.frame),
+                                       "\(size) の \(key.id) のポップアップが \(other.id) に重なる")
+                    }
+                }
+            }
+        }
+    }
+
+    func testPopupIsPinnedToThePanelEdgeNotToTheKey() {
+        let g = geometry(CGSize(width: 844, height: 390), isPad: false)
+        for panel in g.panels {
+            let xs = panel.keys.compactMap { key -> CGFloat? in
+                guard let flickSet = key.key.kind.flickSet else { return nil }
+                return g.popupPlacement(for: key, itemCount: flickSet.assigned.count)?.rect.minX
+            }
+            XCTAssertGreaterThan(xs.count, 1)
+            // どのキーを押しても横位置は動かない。
+            XCTAssertEqual(Set(xs).count, 1, "\(panel.id) のポップアップがキーごとに動いている")
+        }
+    }
+
+    func testPopupStaysInsideTheContainerAndThePanelRows() {
+        for (size, isPad) in Self.deviceSizes {
+            let g = geometry(size, isPad: isPad)
+            for panel in g.panels {
+                for key in panel.keys {
+                    guard let flickSet = key.key.kind.flickSet,
+                          let placement = g.popupPlacement(for: key, itemCount: flickSet.assigned.count)
+                    else { continue }
+                    let rect = placement.rect
+                    XCTAssertGreaterThanOrEqual(rect.minX, -0.5, "\(size) で左にはみ出し")
+                    XCTAssertLessThanOrEqual(rect.maxX, size.width + 0.5, "\(size) で右にはみ出し")
+                    XCTAssertGreaterThanOrEqual(rect.minY, panel.frame.minY - 0.5)
+                    XCTAssertLessThanOrEqual(rect.maxY, panel.frame.maxY + 0.5)
+                }
+            }
+        }
+    }
+
+    func testPopupTracksTheRowOfThePressedKey() {
+        let g = geometry(CGSize(width: 1180, height: 820), isPad: true)
+        let left = g.panels.first { $0.side == .left }!
+        let kana = left.keys.filter { $0.key.kind.flickSet != nil }.sorted { $0.rect.minY < $1.rect.minY }
+        let ys = kana.compactMap { g.popupPlacement(for: $0, itemCount: 5)?.rect.minY }
+        XCTAssertEqual(ys.count, kana.count)
+        // 上の行ほど上に出る（クランプで潰れない広さがある端末で確認）。
+        XCTAssertEqual(ys, ys.sorted())
+        XCTAssertGreaterThan(ys.last! - ys.first!, 0)
+    }
+
+    func testPopupIsNilForKeysWithoutFlicks() {
+        let g = geometry(CGSize(width: 844, height: 390), isPad: false)
+        let right = g.panels.first { $0.side == .right }!
+        let backspace = right.keys.first { $0.key.kind == .backspace }!
+        XCTAssertNil(g.popupPlacement(for: backspace, itemCount: 0))
+    }
+
+    // MARK: -
+
+    private static let deviceSizes: [(CGSize, Bool)] = [
+        (CGSize(width: 844, height: 390), false),   // iPhone 横
+        (CGSize(width: 390, height: 844), false),   // iPhone 縦
+        (CGSize(width: 820, height: 1180), true),   // iPad 縦
+        (CGSize(width: 1180, height: 820), true),   // iPad 横
+        (CGSize(width: 507, height: 1180), true)    // iPad Split View
+    ]
+
+    /// `CGRect.intersects` はプラットフォームによって挙動が揃わないので自前で判定する。
+    private static func overlaps(_ a: CGRect, _ b: CGRect) -> Bool {
+        a.minX < b.maxX && b.minX < a.maxX && a.minY < b.maxY && b.minY < a.maxY
     }
 }

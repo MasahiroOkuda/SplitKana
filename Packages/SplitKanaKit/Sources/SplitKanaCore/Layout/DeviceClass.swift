@@ -1,4 +1,4 @@
-import CoreGraphics
+import Foundation
 
 /// 端末別の初期値（SPEC 3.2）。
 ///

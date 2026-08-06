@@ -2,7 +2,7 @@ import Foundation
 
 /// キーボードが外へ出す唯一の出力。
 ///
-/// SplitKanaKit は `UITextDocumentProxy` にもアプリのモデルにも触らない（SPEC 1）。
+/// SplitKanaCore は `UITextDocumentProxy` にもアプリのモデルにも触らない（SPEC 1）。
 /// 拡張側はこれを proxy に流し、アプリ側は自前バッファに流す。
 public enum KeyOutput: Equatable, Sendable {
     /// 文字を入れる

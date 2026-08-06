@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 import SwiftUI
 
 public struct KeyPalette {
@@ -10,7 +11,6 @@ public struct KeyPalette {
     public var duplicateStroke: Color
     public var pressedFill: Color
     public var label: Color
-    public var secondaryLabel: Color
     public var popupFill: Color
     public var popupStroke: Color
     public var popupHighlight: Color
@@ -25,7 +25,6 @@ public struct KeyPalette {
         duplicateStroke: Color(hex: 0x9FBACB),
         pressedFill: Color(hex: 0xB9C4CC),
         label: Color(hex: 0x1C1C1E),
-        secondaryLabel: Color(hex: 0x5A6169),
         popupFill: Color(hex: 0xFFFFFF),
         popupStroke: Color(hex: 0x9FBACB),
         popupHighlight: Color(hex: 0x2E7FB8),
@@ -44,3 +43,4 @@ extension Color {
         )
     }
 }
+#endif

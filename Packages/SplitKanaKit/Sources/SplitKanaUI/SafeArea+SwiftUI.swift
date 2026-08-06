@@ -1,4 +1,6 @@
+#if canImport(SwiftUI)
 import SwiftUI
+import SplitKanaCore
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -19,3 +21,4 @@ public enum DeviceIdiom {
         #endif
     }
 }
+#endif

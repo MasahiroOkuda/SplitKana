@@ -1,5 +1,5 @@
 import XCTest
-@testable import SplitKanaKit
+@testable import SplitKanaCore
 
 final class KanaTextBufferTests: XCTestCase {
 
@@ -43,10 +43,20 @@ final class KanaTextBufferTests: XCTestCase {
         buffer.apply(.insert("あいう"))
         buffer.apply(.cursor(-1))
         XCTAssertEqual(buffer.cursor, 2)
+        XCTAssertEqual(buffer.contextBeforeCursor, "あい")
+        XCTAssertEqual(buffer.contextAfterCursor, "う")
         buffer.apply(.insert("ん"))
         XCTAssertEqual(buffer.text, "あいんう")
         buffer.apply(.backspace)
         XCTAssertEqual(buffer.text, "あいう")
+    }
+
+    func testDakutenAppliesAtCursorNotAtEnd() {
+        var buffer = KanaTextBuffer()
+        buffer.apply(.insert("かき"))
+        buffer.apply(.cursor(-1))
+        buffer.apply(.dakuten)
+        XCTAssertEqual(buffer.text, "がき")
     }
 
     func testCursorIsClamped() {
