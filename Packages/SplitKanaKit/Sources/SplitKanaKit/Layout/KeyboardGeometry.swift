@@ -1,0 +1,323 @@
+import CoreGraphics
+
+public struct SafeAreaInsets: Equatable, Sendable {
+    public var leading: CGFloat
+    public var trailing: CGFloat
+    public var bottom: CGFloat
+
+    public init(leading: CGFloat = 0, trailing: CGFloat = 0, bottom: CGFloat = 0) {
+        self.leading = leading
+        self.trailing = trailing
+        self.bottom = bottom
+    }
+
+    public static let zero = SafeAreaInsets()
+}
+
+public enum PanelSide: String, Sendable {
+    case left
+    case right
+    /// 分割しない（iPhone 縦のフォールバック）
+    case unified
+}
+
+/// フリックポップアップの開く向き。**必ずキーボードの外側（中央の空き）へ開く**（SPEC 2.3）。
+public enum PopupSide: String, Sendable {
+    case leading
+    case trailing
+}
+
+public struct PlacedKey: Identifiable, Sendable {
+    public let id: String
+    public let key: KeyDescriptor
+    /// パネル内座標での見た目の矩形
+    public let rect: CGRect
+    /// 右パネルのあ列（複製列）か。**イベントは複製元と完全に同一**（SPEC 2.1 / 10）。
+    public let isDuplicate: Bool
+    public let popupSide: PopupSide
+}
+
+public struct PanelGeometry: Identifiable, Sendable {
+    public let id: String
+    public let side: PanelSide
+    /// コンテナ座標での矩形
+    public let frame: CGRect
+    public let keys: [PlacedKey]
+}
+
+/// 毎回コンテナ寸法から計算するレイアウト結果（SPEC 3.1）。
+///
+/// ```
+/// キー幅  kw = base_kw × scale
+/// キー高  kh = base_kh × scale
+/// 左パネル幅 = 2×kw + gx
+/// 右パネル幅 = 4×kw + 3×gx
+/// キーボード高 = 4×kh + 3×gy + 上下余白
+/// ```
+public struct KeyboardGeometry: Sendable {
+    public let containerSize: CGSize
+    public let deviceClass: DeviceClass
+    public let isSplit: Bool
+    /// 実際に適用された倍率（画面に収めるため設定値より小さくなることがある）
+    public let appliedScale: CGFloat
+    public let keyWidth: CGFloat
+    public let keyHeight: CGFloat
+    public let gapX: CGFloat
+    public let gapY: CGFloat
+    public let keyboardHeight: CGFloat
+    public let centerGap: CGFloat
+    public let panels: [PanelGeometry]
+
+    /// キーが1つも置かれていない領域。ホストはここに文字や候補を出す。
+    ///
+    /// 分割時は左右パネルに挟まれた中央の縦帯、統合時はキーボードより上の領域。
+    public var freeRegion: CGRect {
+        guard isSplit,
+              let left = panels.first(where: { $0.side == .left }),
+              let right = panels.first(where: { $0.side == .right }) else {
+            return CGRect(x: 0, y: 0,
+                          width: containerSize.width,
+                          height: max(0, containerSize.height - keyboardHeight))
+        }
+        let x = left.frame.maxX + gapX
+        let width = max(0, right.frame.minX - gapX - x)
+        return CGRect(x: x, y: 0, width: width, height: containerSize.height)
+    }
+}
+
+public extension KeyboardGeometry {
+
+    static func make(
+        containerSize: CGSize,
+        safeArea: SafeAreaInsets = .zero,
+        isPad: Bool,
+        configuration: KeyboardConfiguration
+    ) -> KeyboardGeometry {
+
+        let deviceClass = DeviceClass.resolve(containerSize: containerSize, isPad: isPad)
+        let base = deviceClass.baseMetrics
+        let bottomInset = configuration.bottomInset ?? base.bottomInset
+        let requestedScale = configuration.clampedScale
+
+        let usableWidth = containerSize.width - safeArea.leading - safeArea.trailing - base.sideInset * 2
+        let usableHeight = containerSize.height - safeArea.bottom - bottomInset - base.topPadding
+
+        // 高さは列構成によらず 4行 + 3ギャップ で決まる。
+        let unitHeight = base.keyHeight * 4 + base.gapY * 3
+        let heightScale = unitHeight > 0 ? usableHeight / unitHeight : requestedScale
+
+        let rightColumnCount = configuration.showsDuplicateColumn ? 4 : 3
+
+        // まず分割を試す。
+        if deviceClass.attemptsSplit {
+            // 左パネル 2列（ギャップ1）＋ 右パネル n列（ギャップ n-1）
+            let unitWidth = base.keyWidth * CGFloat(2 + rightColumnCount)
+                + base.gapX * CGFloat(rightColumnCount)
+            let widthScale = unitWidth > 0
+                ? (usableWidth - SplitKanaTuning.minimumCenterGap) / unitWidth
+                : requestedScale
+            let scale = min(requestedScale, widthScale, heightScale)
+
+            if scale >= SplitKanaTuning.minimumSplitScale {
+                return splitGeometry(
+                    containerSize: containerSize,
+                    safeArea: safeArea,
+                    deviceClass: deviceClass,
+                    base: base,
+                    bottomInset: bottomInset,
+                    scale: scale,
+                    rightColumnCount: rightColumnCount,
+                    configuration: configuration
+                )
+            }
+        }
+
+        // 分割の余地がない → 標準どおりの5列にフォールバック（SPEC 3.3）。
+        let unifiedColumns = 5
+        let unitWidth = base.keyWidth * CGFloat(unifiedColumns) + base.gapX * CGFloat(unifiedColumns - 1)
+        let widthScale = unitWidth > 0 ? usableWidth / unitWidth : requestedScale
+        let scale = min(requestedScale, widthScale, heightScale)
+
+        return unifiedGeometry(
+            containerSize: containerSize,
+            safeArea: safeArea,
+            deviceClass: deviceClass,
+            base: base,
+            bottomInset: bottomInset,
+            scale: scale,
+            configuration: configuration
+        )
+    }
+
+    // MARK: - 分割
+
+    private static func splitGeometry(
+        containerSize: CGSize,
+        safeArea: SafeAreaInsets,
+        deviceClass: DeviceClass,
+        base: BaseMetrics,
+        bottomInset: CGFloat,
+        scale: CGFloat,
+        rightColumnCount: Int,
+        configuration: KeyboardConfiguration
+    ) -> KeyboardGeometry {
+
+        let kw = base.keyWidth * scale
+        let kh = base.keyHeight * scale
+        let gx = base.gapX * scale
+        let gy = base.gapY * scale
+
+        let panelHeight = kh * 4 + gy * 3
+        let keyboardHeight = panelHeight + base.topPadding + bottomInset + safeArea.bottom
+        let panelY = containerSize.height - keyboardHeight + base.topPadding
+
+        let leftWidth = kw * 2 + gx
+        let rightWidth = kw * CGFloat(rightColumnCount) + gx * CGFloat(rightColumnCount - 1)
+
+        let leftX = safeArea.leading + base.sideInset
+        let rightX = containerSize.width - safeArea.trailing - base.sideInset - rightWidth
+
+        let leftColumns: [KeyColumn] = [.function, .aColumn]
+        let rightColumns: [KeyColumn] = configuration.showsDuplicateColumn
+            ? [.aColumn, .kaColumn, .saColumn, .utility]
+            : [.kaColumn, .saColumn, .utility]
+
+        let leftPanel = PanelGeometry(
+            id: "panel.left",
+            side: .left,
+            frame: CGRect(x: leftX, y: panelY, width: leftWidth, height: panelHeight),
+            keys: place(columns: leftColumns,
+                        panelID: "left",
+                        kw: kw, kh: kh, gx: gx, gy: gy,
+                        panelWidth: leftWidth,
+                        duplicateColumnIndices: [],
+                        popupSide: { _ in .trailing },
+                        configuration: configuration)
+        )
+
+        // 複製列は右パネルの先頭列だけ。
+        let duplicateIndices: Set<Int> = configuration.showsDuplicateColumn ? [0] : []
+
+        let rightPanel = PanelGeometry(
+            id: "panel.right",
+            side: .right,
+            frame: CGRect(x: rightX, y: panelY, width: rightWidth, height: panelHeight),
+            keys: place(columns: rightColumns,
+                        panelID: "right",
+                        kw: kw, kh: kh, gx: gx, gy: gy,
+                        panelWidth: rightWidth,
+                        duplicateColumnIndices: duplicateIndices,
+                        popupSide: { _ in .leading },
+                        configuration: configuration)
+        )
+
+        return KeyboardGeometry(
+            containerSize: containerSize,
+            deviceClass: deviceClass,
+            isSplit: true,
+            appliedScale: scale,
+            keyWidth: kw,
+            keyHeight: kh,
+            gapX: gx,
+            gapY: gy,
+            keyboardHeight: keyboardHeight,
+            centerGap: max(0, rightX - (leftX + leftWidth)),
+            panels: [leftPanel, rightPanel]
+        )
+    }
+
+    // MARK: - 統合（iPhone 縦フォールバック）
+
+    private static func unifiedGeometry(
+        containerSize: CGSize,
+        safeArea: SafeAreaInsets,
+        deviceClass: DeviceClass,
+        base: BaseMetrics,
+        bottomInset: CGFloat,
+        scale: CGFloat,
+        configuration: KeyboardConfiguration
+    ) -> KeyboardGeometry {
+
+        let kw = base.keyWidth * scale
+        let kh = base.keyHeight * scale
+        let gx = base.gapX * scale
+        let gy = base.gapY * scale
+
+        let panelHeight = kh * 4 + gy * 3
+        let keyboardHeight = panelHeight + base.topPadding + bottomInset + safeArea.bottom
+        let panelY = containerSize.height - keyboardHeight + base.topPadding
+
+        let columns: [KeyColumn] = [.function, .aColumn, .kaColumn, .saColumn, .utility]
+        let panelWidth = kw * CGFloat(columns.count) + gx * CGFloat(columns.count - 1)
+        let panelX = (containerSize.width - panelWidth) / 2
+
+        // 統合レイアウトでは中央の空きがないので、左半分は右へ、右半分は左へ開く。
+        let panel = PanelGeometry(
+            id: "panel.unified",
+            side: .unified,
+            frame: CGRect(x: panelX, y: panelY, width: panelWidth, height: panelHeight),
+            keys: place(columns: columns,
+                        panelID: "unified",
+                        kw: kw, kh: kh, gx: gx, gy: gy,
+                        panelWidth: panelWidth,
+                        duplicateColumnIndices: [],
+                        popupSide: { rect in rect.midX < panelWidth / 2 ? .trailing : .leading },
+                        configuration: configuration)
+        )
+
+        return KeyboardGeometry(
+            containerSize: containerSize,
+            deviceClass: deviceClass,
+            isSplit: false,
+            appliedScale: scale,
+            keyWidth: kw,
+            keyHeight: kh,
+            gapX: gx,
+            gapY: gy,
+            keyboardHeight: keyboardHeight,
+            centerGap: 0,
+            panels: [panel]
+        )
+    }
+
+    // MARK: - 列の配置
+
+    private static func place(
+        columns: [KeyColumn],
+        panelID: String,
+        kw: CGFloat,
+        kh: CGFloat,
+        gx: CGFloat,
+        gy: CGFloat,
+        panelWidth: CGFloat,
+        duplicateColumnIndices: Set<Int>,
+        popupSide: (CGRect) -> PopupSide,
+        configuration: KeyboardConfiguration
+    ) -> [PlacedKey] {
+
+        var placed: [PlacedKey] = []
+
+        for (columnIndex, column) in columns.enumerated() {
+            let x = CGFloat(columnIndex) * (kw + gx)
+            var row = 0
+
+            for key in column.keys(configuration: configuration) {
+                let span = max(1, key.rowSpan)
+                let y = CGFloat(row) * (kh + gy)
+                let height = kh * CGFloat(span) + gy * CGFloat(span - 1)
+                let rect = CGRect(x: x, y: y, width: kw, height: height)
+
+                placed.append(PlacedKey(
+                    id: "\(panelID).\(column.rawValue).\(row)",
+                    key: key,
+                    rect: rect,
+                    isDuplicate: duplicateColumnIndices.contains(columnIndex),
+                    popupSide: popupSide(rect)
+                ))
+                row += span
+            }
+        }
+
+        return placed
+    }
+}
