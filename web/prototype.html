@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- ARTIFACT:BEGIN -->
+<title>分割かなキーボード — Web プロトタイプ</title>
+<style>
+/* SplitKanaCore と同じ計算式・同じ定数で実装している。数値を変えるときは両方直すこと。
+   これは測定器であって作品ではない。キーの色と寸法は SPEC の値から動かさないこと。
+   動かすとここで測った値が実機に転写できなくなる。
+   テーマも意図的にライト単一。iOS のライトモードキーボードの再現が目的なので、
+   閲覧環境のテーマに追従させると忠実性のほうが壊れる。
+   地色は無彩色ではなく、SPEC のアクセント(#2e7fb8)側へわずかに寄せた寒色グレーにしてある。 */
+:root {
+  --bg: #edeff1;
+  --kana-fill: #ffffff;
+  --kana-stroke: #c7ccd1;
+  --function-fill: #d6dbe0;
+  --function-stroke: #b6bcc2;
+  --duplicate-fill: #eaf0f4;   /* SPEC 2.1 */
+  --duplicate-stroke: #9fbacb; /* SPEC 2.1 */
+  --pressed-fill: #b9c4cc;
+  --label: #1c1c1e;
+  --popup-fill: #ffffff;
+  --popup-stroke: #9fbacb;
+  --popup-highlight: #2e7fb8;
+  --panel-bg: rgba(0,0,0,0.03);
+}
+* {
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+  color: var(--label);
+  touch-action: manipulation;
+}
+#stage { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+/* --- 中央の空き --- */
+#center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+#stats { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+#stats .metric { display: flex; gap: 4px; align-items: baseline; }
+#stats .metric b { font-size: 15px; font-variant-numeric: tabular-nums; }
+#stats .metric span { color: #6b7278; font-size: 11px; }
+#stats button {
+  font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid #b6bcc2; background: #fff; color: inherit;
+}
+#transcript {
+  flex: 1; min-height: 0; overflow-y: auto; background: #fff;
+  border: 1px solid #d2d6da; border-radius: 10px; padding: 10px;
+  font-size: 21px; line-height: 1.5; word-break: break-all; white-space: pre-wrap;
+}
+#caret {
+  display: inline-block; width: 2px; height: 1.05em; background: var(--popup-highlight);
+  vertical-align: text-bottom; animation: blink 1.06s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  #caret { animation: none; }
+}
+#notice { font-size: 12px; color: #6b7278; min-height: 1.2em; }
+
+/* 設定は指で触るので、フォーカスが見えないと片手では追えない */
+#settings input:focus-visible,
+#settings select:focus-visible,
+#stats button:focus-visible,
+#gear:focus-visible {
+  outline: 2px solid var(--popup-highlight);
+  outline-offset: 2px;
+}
+
+/* --- 設定 --- */
+#settings {
+  background: #fff; border: 1px solid #d2d6da; border-radius: 10px;
+  padding: 10px; font-size: 12px; max-height: 46%; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#settings[hidden] { display: none; }
+#settings .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+#settings .row label { flex: 0 0 5.2em; color: #6b7278; }
+#settings input[type=range] { flex: 1; min-width: 0; }
+#settings .val { flex: 0 0 3.4em; text-align: right; font-variant-numeric: tabular-nums; }
+#settings select { font: inherit; flex: 1; min-width: 0; }
+#readout {
+  border-top: 1px solid #e3e6e9; padding-top: 8px; margin-top: 4px;
+  color: #4b5157; font-variant-numeric: tabular-nums; line-height: 1.6;
+}
+#readout b { font-weight: 600; }
+
+/* --- キー --- */
+.panel { position: absolute; border-radius: 12px; }
+.key {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; border: 1px solid var(--kana-stroke); background: var(--kana-fill);
+  touch-action: none; overflow: hidden; line-height: 1;
+}
+.key.function, .key.utility { background: var(--function-fill); border-color: var(--function-stroke); }
+.key.duplicate { background: var(--duplicate-fill); border-color: var(--duplicate-stroke); }
+.key.pressed { background: var(--pressed-fill); }
+
+/* --- ポップアップ --- */
+.popup {
+  position: absolute; display: flex; align-items: center;
+  background: var(--popup-fill); border: 1px solid var(--popup-stroke);
+  border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  pointer-events: none; z-index: 10;
+}
+.popup i {
+  display: flex; align-items: center; justify-content: center;
+  font-style: normal; border-radius: 6px;
+}
+.popup i.sel { background: var(--popup-highlight); color: #fff; font-weight: 600; }
+
+#gear {
+  position: absolute; z-index: 20; width: 34px; height: 34px; border-radius: 17px;
+  border: 1px solid #b6bcc2; background: #fff; font-size: 16px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+#safeprobe {
+  position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden;
+  padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom); padding-top: env(safe-area-inset-top);
+}
+</style>
+<!-- ARTIFACT:HEAD-END -->
+</head>
+<body>
+<div id="safeprobe"></div>
+<div id="stage">
+  <button id="gear" aria-label="設定">⚙</button>
+  <div id="center">
+    <div id="stats">
+      <div class="metric"><span>文字</span><b id="m-chars">0</b></div>
+      <div class="metric"><span>削除</span><b id="m-del">0</b></div>
+      <div class="metric"><span>文字/分</span><b id="m-cpm">0</b></div>
+      <button id="clear">消す</button>
+    </div>
+    <div id="settings" hidden>
+      <div class="row">
+        <label>大きさ</label>
+        <input type="range" id="s-scale" min="0.80" max="1.45" step="0.01">
+        <div class="val" id="v-scale"></div>
+      </div>
+      <div class="row">
+        <label>下の浮き</label>
+        <input type="range" id="s-bottom" min="0" max="60" step="1">
+        <div class="val" id="v-bottom"></div>
+      </div>
+      <div class="row">
+        <label>フリック</label>
+        <input type="range" id="s-thresh" min="6" max="40" step="1">
+        <div class="val" id="v-thresh"></div>
+      </div>
+      <div class="row">
+        <label>複製列</label>
+        <select id="s-dup">
+          <option value="1">出す（右4列）</option>
+          <option value="0">消す（右3列）</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>端末</label>
+        <select id="s-device">
+          <option value="auto">自動</option>
+          <option value="phoneLandscape">iPhone 横</option>
+          <option value="phonePortrait">iPhone 縦</option>
+          <option value="padPortrait">iPad 縦</option>
+          <option value="padLandscape">iPad 横</option>
+        </select>
+      </div>
+      <div id="readout"></div>
+    </div>
+    <div id="transcript"></div>
+    <div id="notice"></div>
+  </div>
+</div>
+<script>
+"use strict";
+
+/* =========================================================================
+   SplitKanaCore の移植。定数も計算式も Swift 側と同じにしてある。
+   ここで実測した値を SPEC 11 の未決事項に入れる。
+   ========================================================================= */
+
+const TUNING = {
+  flickThreshold: 18,      // SPEC 2.3
+  touchOutset: 2,          // SPEC 10
+  minimumCenterGap: 80,
+  minimumSplitScale: 0.80,
+  popupItemRatio: 0.86,
+  popupPadding: 4
+};
+
+// SPEC 3.2 の表。倍率1.0のときの寸法として持つ。
+const BASE = {
+  phoneLandscape: { kw: 64, kh: 59, gx: 6, gy: 6, side: 8,  top: 8,  bottom: 8  },
+  phonePortrait:  { kw: 70, kh: 54, gx: 5, gy: 5, side: 6,  top: 6,  bottom: 4  },
+  padPortrait:    { kw: 72, kh: 64, gx: 8, gy: 8, side: 16, top: 12, bottom: 24 },
+  padLandscape:   { kw: 78, kh: 70, gx: 8, gy: 8, side: 20, top: 12, bottom: 24 }
+};
+
+// SPEC 2.3 フリック表。並びは 中央 / 左 / 上 / 右 / 下。
+const FLICK = {
+  a:  ["あ","い","う","え","お"], ka: ["か","き","く","け","こ"],
+  sa: ["さ","し","す","せ","そ"], ta: ["た","ち","つ","て","と"],
+  na: ["な","に","ぬ","ね","の"], ha: ["は","ひ","ふ","へ","ほ"],
+  ma: ["ま","み","む","め","も"], ya: ["や","「","ゆ","」","よ"],
+  ra: ["ら","り","る","れ","ろ"], wa: ["わ","を","ん","ー","〜"],
+  pun:["、","。","?","!","…"]
+};
+const DIRS = ["center","left","up","right","down"];
+
+// SPEC 2.4 小書き → 濁点 → 半濁点。「っ」は「づ」より先。
+const RINGS = [
+  ["あ","ぁ"],["い","ぃ"],["う","ぅ","ゔ"],["え","ぇ"],["お","ぉ"],
+  ["か","が"],["き","ぎ"],["く","ぐ"],["け","げ"],["こ","ご"],
+  ["さ","ざ"],["し","じ"],["す","ず"],["せ","ぜ"],["そ","ぞ"],
+  ["た","だ"],["ち","ぢ"],["つ","っ","づ"],["て","で"],["と","ど"],
+  ["は","ば","ぱ"],["ひ","び","ぴ"],["ふ","ぶ","ぷ"],["へ","べ","ぺ"],["ほ","ぼ","ぽ"],
+  ["や","ゃ"],["ゆ","ゅ"],["よ","ょ"],["わ","ゎ"]
+];
+const NEXT_FORM = (() => {
+  const m = new Map();
+  for (const ring of RINGS) {
+    if (ring.length < 2) continue;
+    ring.forEach((c, i) => m.set(c, ring[(i + 1) % ring.length]));
+  }
+  return m;
+})();
+
+// SPEC 2.2 機能列。キーボード拡張と同じ構成。◀▶ だけ実際に効く。
+const FUNCTION_COLUMN = [
+  { label: "🌐", out: { t: "mode" } },
+  { label: "英数", out: { t: "alnum" } },
+  { label: "◀", out: { t: "cursor", n: -1 } },
+  { label: "▶", out: { t: "cursor", n: 1 } }
+];
+
+const kana = (k) => ({ kind: "kana", flick: FLICK[k], label: FLICK[k][0], span: 1 });
+const COLUMN = {
+  fn:  () => FUNCTION_COLUMN.map(f => ({ kind: "function", label: f.label, out: f.out, span: 1 })),
+  a:   () => [kana("a"), kana("ta"), kana("ma"), { kind: "dakuten", label: "小゛゜", span: 1 }],
+  ka:  () => [kana("ka"), kana("na"), kana("ya"), kana("wa")],
+  sa:  () => [kana("sa"), kana("ha"), kana("ra"), kana("pun")],
+  util:() => [
+    { kind: "backspace", label: "⌫", span: 1 },
+    { kind: "space", label: "空白", span: 1 },
+    { kind: "newline", label: "改行", span: 2 }
+  ]
+};
+
+/* ---------------------------------------------------------------- 設定 */
+
+const DEFAULTS = { scale: 1.10, bottomInset: null, threshold: 18, dup: true, device: "auto" };
+let cfg = Object.assign({}, DEFAULTS);
+try {
+  const saved = JSON.parse(localStorage.getItem("splitkana.cfg") || "null");
+  if (saved) cfg = Object.assign(cfg, saved);
+} catch (e) { /* localStorage が使えなくても動く */ }
+function saveCfg() {
+  try { localStorage.setItem("splitkana.cfg", JSON.stringify(cfg)); } catch (e) {}
+}
+
+/* ------------------------------------------------------------ レイアウト */
+
+function safeArea() {
+  const s = getComputedStyle(document.getElementById("safeprobe"));
+  return {
+    leading: parseFloat(s.paddingLeft) || 0,
+    trailing: parseFloat(s.paddingRight) || 0,
+    bottom: parseFloat(s.paddingBottom) || 0,
+    top: parseFloat(s.paddingTop) || 0
+  };
+}
+
+function resolveDevice(w, h) {
+  if (cfg.device !== "auto") return cfg.device;
+  const isPad = Math.min(w, h) >= 600;
+  const landscape = w >= h;
+  if (isPad) return landscape ? "padLandscape" : "padPortrait";
+  return landscape ? "phoneLandscape" : "phonePortrait";
+}
+
+function placeColumns(cols, panelId, kw, kh, gx, gy, dupIndices, sideOf, panelW) {
+  const out = [];
+  cols.forEach((name, ci) => {
+    const x = ci * (kw + gx);
+    let row = 0;
+    for (const key of COLUMN[name]()) {
+      const span = Math.max(1, key.span);
+      const y = row * (kh + gy);
+      const rect = { x, y, w: kw, h: kh * span + gy * (span - 1) };
+      out.push({
+        id: panelId + "." + name + "." + row,
+        key, rect,
+        dup: dupIndices.has(ci),
+        popupSide: sideOf(rect, panelW)
+      });
+      row += span;
+    }
+  });
+  return out;
+}
+
+function computeLayout(W, H) {
+  const sa = safeArea();
+  const dev = resolveDevice(W, H);
+  const base = BASE[dev];
+  const bottomInset = (cfg.bottomInset === null) ? base.bottom : cfg.bottomInset;
+  const scaleReq = Math.min(Math.max(cfg.scale, 0.80), 1.45);
+
+  const usableW = W - sa.leading - sa.trailing - base.side * 2;
+  const usableH = H - sa.bottom - bottomInset - base.top;
+  const unitH = base.kh * 4 + base.gy * 3;
+  const hScale = unitH > 0 ? usableH / unitH : scaleReq;
+
+  const rightCols = cfg.dup ? 4 : 3;
+  const attemptsSplit = dev !== "phonePortrait";
+
+  if (attemptsSplit) {
+    const unitW = base.kw * (2 + rightCols) + base.gx * rightCols;
+    const wScale = unitW > 0 ? (usableW - TUNING.minimumCenterGap) / unitW : scaleReq;
+    const scale = Math.min(scaleReq, wScale, hScale);
+    if (scale >= TUNING.minimumSplitScale) {
+      const kw = base.kw * scale, kh = base.kh * scale;
+      const gx = base.gx * scale, gy = base.gy * scale;
+      const panelH = kh * 4 + gy * 3;
+      const kbH = panelH + base.top + bottomInset + sa.bottom;
+      const py = H - kbH + base.top;
+      const leftW = kw * 2 + gx;
+      const rightW = kw * rightCols + gx * (rightCols - 1);
+      const leftX = sa.leading + base.side;
+      const rightX = W - sa.trailing - base.side - rightW;
+      const rightNames = cfg.dup ? ["a","ka","sa","util"] : ["ka","sa","util"];
+      return {
+        dev, isSplit: true, scale, kw, kh, gx, gy,
+        keyboardHeight: kbH,
+        centerGap: Math.max(0, rightX - (leftX + leftW)),
+        panels: [
+          { id: "left", side: "left", x: leftX, y: py, w: leftW, h: panelH,
+            keys: placeColumns(["fn","a"], "left", kw, kh, gx, gy, new Set(), () => "trailing", leftW) },
+          { id: "right", side: "right", x: rightX, y: py, w: rightW, h: panelH,
+            keys: placeColumns(rightNames, "right", kw, kh, gx, gy,
+                               cfg.dup ? new Set([0]) : new Set(), () => "leading", rightW) }
+        ]
+      };
+    }
+  }
+
+  // SPEC 3.3 分割の余地がない → 標準どおりの5列
+  const names = ["fn","a","ka","sa","util"];
+  const unitW = base.kw * 5 + base.gx * 4;
+  const wScale = unitW > 0 ? usableW / unitW : scaleReq;
+  const scale = Math.min(scaleReq, wScale, hScale);
+  const kw = base.kw * scale, kh = base.kh * scale;
+  const gx = base.gx * scale, gy = base.gy * scale;
+  const panelH = kh * 4 + gy * 3;
+  const kbH = panelH + base.top + bottomInset + sa.bottom;
+  const panelW = kw * 5 + gx * 4;
+  return {
+    dev, isSplit: false, scale, kw, kh, gx, gy,
+    keyboardHeight: kbH, centerGap: 0,
+    panels: [{
+      id: "unified", side: "unified",
+      x: (W - panelW) / 2, y: H - kbH + base.top, w: panelW, h: panelH,
+      keys: placeColumns(names, "unified", kw, kh, gx, gy, new Set(),
+                         (r, pw) => (r.x + r.w / 2 < pw / 2 ? "trailing" : "leading"), panelW)
+    }]
+  };
+}
+
+/* SPEC 2.3 ポップアップは押したキーの隣ではなくパネルの内側端に固定する。 */
+function popupPlacement(L, panel, placed, itemCount) {
+  if (itemCount <= 0) return null;
+  const pad = TUNING.popupPadding;
+  const itemH = Math.min(L.kw, L.kh) * TUNING.popupItemRatio;
+  const available = L.isSplit ? L.centerGap - L.gx * 2 : L.containerW - L.gx * 2;
+  const itemW = Math.min(L.kw * TUNING.popupItemRatio, (available - pad * 2) / itemCount);
+  if (itemW <= 0) return null;
+
+  const w = itemW * itemCount + pad * 2;
+  const h = itemH + pad * 2;
+  let x;
+  if (L.isSplit) {
+    x = placed.popupSide === "trailing" ? panel.x + panel.w + L.gx : panel.x - L.gx - w;
+  } else {
+    const raw = placed.popupSide === "trailing"
+      ? panel.x + placed.rect.x + placed.rect.w + L.gx
+      : panel.x + placed.rect.x - L.gx - w;
+    x = Math.min(Math.max(raw, 0), Math.max(0, L.containerW - w));
+  }
+  const wantY = panel.y + placed.rect.y + placed.rect.h / 2 - h / 2;
+  const y = Math.min(Math.max(wantY, panel.y), Math.max(panel.y, panel.y + panel.h - h));
+  return { x, y, w, h, itemW, itemH };
+}
+
+/* -------------------------------------------------------------- バッファ */
+
+const buf = { text: "", cursor: 0 };
+const stats = { chars: 0, del: 0, startedAt: null };
+
+function applyOutput(out) {
+  if (out.t !== "mode" && out.t !== "alnum" && stats.startedAt === null) stats.startedAt = Date.now();
+  switch (out.t) {
+    case "insert": insert(out.s); stats.chars += [...out.s].length; setNotice(""); return;
+    case "space":  insert("　"); stats.chars += 1; setNotice(""); return;
+    case "newline":insert("\n"); stats.chars += 1; setNotice(""); return;
+    case "backspace": {
+      if (buf.cursor > 0) {
+        const a = [...buf.text];
+        a.splice(buf.cursor - 1, 1);
+        buf.text = a.join(""); buf.cursor -= 1;
+      }
+      stats.del += 1; setNotice(""); return;
+    }
+    case "dakuten": {
+      if (buf.cursor > 0) {
+        const a = [...buf.text];
+        const n = NEXT_FORM.get(a[buf.cursor - 1]);
+        if (n) { a[buf.cursor - 1] = n; buf.text = a.join(""); }
+      }
+      setNotice(""); return;
+    }
+    case "cursor": {
+      const len = [...buf.text].length;
+      buf.cursor = Math.min(Math.max(buf.cursor + out.n, 0), len);
+      setNotice(""); return;
+    }
+    case "mode":  setNotice("🌐 はキーボード拡張でのみ動く（フェーズ2）"); return;
+    case "alnum": setNotice("英数モードは未実装"); return;
+  }
+}
+function insert(s) {
+  const a = [...buf.text];
+  a.splice(buf.cursor, 0, ...[...s]);
+  buf.text = a.join("");
+  buf.cursor += [...s].length;
+}
+
+/* ------------------------------------------------------------ 描画 */
+
+const stage = document.getElementById("stage");
+const centerEl = document.getElementById("center");
+const transcriptEl = document.getElementById("transcript");
+const noticeEl = document.getElementById("notice");
+let layout = null;
+let keyEls = new Map();   // id -> element
+let popupEls = new Map(); // panelId -> element
+const active = new Map(); // pointerId -> { placed, panel, dir }
+
+function setNotice(t) { noticeEl.textContent = t; }
+
+function render() {
+  const W = stage.clientWidth, H = stage.clientHeight;
+  layout = computeLayout(W, H);
+  layout.containerW = W;
+
+  // 既存のパネル／キーを作り直す
+  stage.querySelectorAll(".panel, .popup").forEach(n => n.remove());
+  keyEls.clear(); popupEls.clear();
+
+  for (const panel of layout.panels) {
+    const p = document.createElement("div");
+    p.className = "panel";
+    p.style.cssText = `left:${panel.x}px;top:${panel.y}px;width:${panel.w}px;height:${panel.h}px;`;
+    stage.appendChild(p);
+
+    for (const placed of panel.keys) {
+      const el = document.createElement("div");
+      const cls = ["key"];
+      if (placed.key.kind === "function") cls.push("function");
+      if (["backspace","space","newline"].includes(placed.key.kind)) cls.push("utility");
+      if (placed.dup) cls.push("duplicate");
+      el.className = cls.join(" ");
+      const r = placed.rect, o = TUNING.touchOutset;
+      // タップ領域は見た目より上下左右 2pt 広く取る（SPEC 10）
+      el.style.cssText =
+        `left:${r.x - o}px;top:${r.y - o}px;width:${r.w + o*2}px;height:${r.h + o*2}px;` +
+        `font-size:${fontSize(placed.key.label, r)}px;`;
+      el.textContent = placed.key.label;
+      el.dataset.id = placed.id;
+      placed.panelRef = panel;
+      keyEls.set(placed.id, { el, placed, panel });
+      p.appendChild(el);
+    }
+
+    const pop = document.createElement("div");
+    pop.className = "popup";
+    pop.style.display = "none";
+    stage.appendChild(pop);
+    popupEls.set(panel.id, pop);
+  }
+
+  layoutCenter();
+  drawTranscript();
+  drawReadout();
+}
+
+function fontSize(label, r) {
+  const base = Math.min(r.w, r.h);
+  const n = [...label].length;
+  if (n <= 1) return base * 0.46;
+  if (n === 2) return base * 0.30;
+  return base * 0.22;
+}
+
+function layoutCenter() {
+  const sa = safeArea();
+  const H = stage.clientHeight, W = stage.clientWidth;
+  let x, w, y, h;
+  if (layout.isSplit) {
+    const l = layout.panels.find(p => p.side === "left");
+    const r = layout.panels.find(p => p.side === "right");
+    x = l.x + l.w + layout.gx;
+    w = Math.max(0, r.x - layout.gx - x);
+    y = sa.top + 8;
+    h = Math.max(0, H - y - sa.bottom - 8);
+  } else {
+    x = 8; w = W - 16;
+    y = sa.top + 8;
+    h = Math.max(0, H - layout.keyboardHeight - y - 8);
+  }
+  centerEl.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+  const gear = document.getElementById("gear");
+  gear.style.cssText = `left:${x + w - 34}px;top:${Math.max(2, y - 40)}px;`;
+}
+
+function drawTranscript() {
+  const a = [...buf.text];
+  transcriptEl.textContent = "";
+  transcriptEl.appendChild(document.createTextNode(a.slice(0, buf.cursor).join("")));
+  const caret = document.createElement("span");
+  caret.id = "caret";
+  transcriptEl.appendChild(caret);
+  transcriptEl.appendChild(document.createTextNode(a.slice(buf.cursor).join("")));
+  document.getElementById("m-chars").textContent = String(stats.chars);
+  document.getElementById("m-del").textContent = String(stats.del);
+}
+
+function drawReadout() {
+  const L = layout;
+  const sa = safeArea();
+  const dev = { phoneLandscape:"iPhone 横", phonePortrait:"iPhone 縦",
+                padPortrait:"iPad 縦", padLandscape:"iPad 横" }[L.dev];
+  document.getElementById("readout").innerHTML =
+    `<b>${dev}</b>${L.isSplit ? "・分割" : "・分割なし(5列)"}<br>` +
+    `画面 ${Math.round(stage.clientWidth)}×${Math.round(stage.clientHeight)}` +
+    `　セーフエリア ${Math.round(sa.leading)}/${Math.round(sa.trailing)}/${Math.round(sa.bottom)}<br>` +
+    `キー <b>${L.kw.toFixed(1)}×${L.kh.toFixed(1)}</b>　実効倍率 <b>${L.scale.toFixed(3)}</b><br>` +
+    `キーボード高 <b>${L.keyboardHeight.toFixed(0)}</b>　中央の空き <b>${L.centerGap.toFixed(0)}</b>`;
+}
+
+function updatePopup(panelId) {
+  const pop = popupEls.get(panelId);
+  if (!pop) return;
+  let entry = null;
+  for (const v of active.values()) if (v.panel.id === panelId && v.placed.key.kind === "kana") entry = v;
+  if (!entry) { pop.style.display = "none"; return; }
+
+  const flick = entry.placed.key.flick;
+  const pl = popupPlacement(layout, entry.panel, entry.placed, flick.length);
+  if (!pl) { pop.style.display = "none"; return; }
+
+  pop.style.cssText =
+    `left:${pl.x}px;top:${pl.y}px;width:${pl.w}px;height:${pl.h}px;` +
+    `padding:${TUNING.popupPadding}px;display:flex;`;
+  pop.textContent = "";
+  flick.forEach((ch, i) => {
+    const it = document.createElement("i");
+    it.textContent = ch;
+    it.style.cssText = `width:${pl.itemW}px;height:${pl.itemH}px;font-size:${pl.itemH * 0.5}px;`;
+    if (DIRS[i] === entry.dir) it.className = "sel";
+    pop.appendChild(it);
+  });
+}
+
+/* ------------------------------------------------------------ 入力 */
+
+function directionOf(dx, dy) {
+  const t = cfg.threshold;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < t) return "center";
+  if (Math.abs(dx) >= Math.abs(dy)) return dx < 0 ? "left" : "right";
+  return dy < 0 ? "up" : "down";
+}
+
+function outputFor(placed, dir) {
+  const k = placed.key;
+  switch (k.kind) {
+    case "kana": {
+      const i = DIRS.indexOf(dir);
+      return { t: "insert", s: k.flick[i] || k.flick[0] };
+    }
+    case "dakuten":   return { t: "dakuten" };
+    case "backspace": return { t: "backspace" };
+    case "space":     return { t: "space" };
+    case "newline":   return { t: "newline" };
+    case "function":  return k.out;
+  }
+}
+
+stage.addEventListener("pointerdown", (e) => {
+  const el = e.target.closest(".key");
+  if (!el) return;
+  e.preventDefault();
+  const entry = keyEls.get(el.dataset.id);
+  if (!entry) return;
+  el.setPointerCapture(e.pointerId);
+  el.classList.add("pressed");
+  active.set(e.pointerId, {
+    placed: entry.placed, panel: entry.panel, el,
+    x0: e.clientX, y0: e.clientY, dir: "center"
+  });
+  if (entry.placed.key.kind === "kana") {
+    el.textContent = entry.placed.key.flick[0];
+    updatePopup(entry.panel.id);
+  }
+}, { passive: false });
+
+stage.addEventListener("pointermove", (e) => {
+  const a = active.get(e.pointerId);
+  if (!a) return;
+  e.preventDefault();
+  const dir = directionOf(e.clientX - a.x0, e.clientY - a.y0);
+  if (dir === a.dir) return;
+  a.dir = dir;
+  if (a.placed.key.kind === "kana") {
+    a.el.textContent = a.placed.key.flick[DIRS.indexOf(dir)] || a.placed.key.flick[0];
+    updatePopup(a.panel.id);
+  }
+}, { passive: false });
+
+function release(e) {
+  const a = active.get(e.pointerId);
+  if (!a) return;
+  active.delete(e.pointerId);
+  a.el.classList.remove("pressed");
+  a.el.textContent = a.placed.key.label;
+  updatePopup(a.panel.id);
+  if (e.type === "pointerup") {
+    applyOutput(outputFor(a.placed, a.dir));
+    drawTranscript();
+    transcriptEl.scrollTop = transcriptEl.scrollHeight;
+  }
+}
+stage.addEventListener("pointerup", release);
+stage.addEventListener("pointercancel", release);
+
+/* ------------------------------------------------------------ 設定 UI */
+
+const settingsEl = document.getElementById("settings");
+document.getElementById("gear").addEventListener("click", () => {
+  settingsEl.hidden = !settingsEl.hidden;
+  if (!settingsEl.hidden) drawReadout();
+});
+document.getElementById("clear").addEventListener("click", () => {
+  buf.text = ""; buf.cursor = 0;
+  stats.chars = 0; stats.del = 0; stats.startedAt = null;
+  setNotice(""); drawTranscript();
+});
+
+function bindRange(id, valId, key, fmt, onChange) {
+  const input = document.getElementById(id), out = document.getElementById(valId);
+  const show = () => { out.textContent = fmt(cfg[key]); };
+  input.value = cfg[key];
+  show();
+  input.addEventListener("input", () => {
+    cfg[key] = parseFloat(input.value);
+    show(); saveCfg(); onChange();
+  });
+}
+bindRange("s-scale",  "v-scale",  "scale",     v => v.toFixed(2), render);
+bindRange("s-thresh", "v-thresh", "threshold", v => v + "pt",     () => {});
+
+{
+  const input = document.getElementById("s-bottom"), out = document.getElementById("v-bottom");
+  const eff = () => cfg.bottomInset === null ? BASE[resolveDevice(stage.clientWidth, stage.clientHeight)].bottom : cfg.bottomInset;
+  input.value = eff();
+  out.textContent = eff() + "pt";
+  input.addEventListener("input", () => {
+    cfg.bottomInset = parseFloat(input.value);
+    out.textContent = cfg.bottomInset + "pt";
+    saveCfg(); render();
+  });
+}
+{
+  const sel = document.getElementById("s-dup");
+  sel.value = cfg.dup ? "1" : "0";
+  sel.addEventListener("change", () => { cfg.dup = sel.value === "1"; saveCfg(); render(); });
+}
+{
+  const sel = document.getElementById("s-device");
+  sel.value = cfg.device;
+  sel.addEventListener("change", () => { cfg.device = sel.value; saveCfg(); render(); });
+}
+
+/* ------------------------------------------------------------ 起動 */
+
+setInterval(() => {
+  const el = document.getElementById("m-cpm");
+  if (!stats.startedAt) { el.textContent = "0"; return; }
+  const sec = (Date.now() - stats.startedAt) / 1000;
+  el.textContent = sec < 1 ? "0" : String(Math.round(stats.chars / sec * 60));
+}, 1000);
+
+// Artifact として配信されると head 要素は差し替えられるので、必要な meta は自分で足す。
+(function ensureMeta() {
+  const need = [
+    ["viewport", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"],
+    ["apple-mobile-web-app-capable", "yes"]
+  ];
+  for (const [name, content] of need) {
+    let m = document.querySelector(`meta[name="${name}"]`);
+    if (!m) { m = document.createElement("meta"); m.name = name; document.head.appendChild(m); }
+    m.content = content;
+  }
+})();
+
+document.addEventListener("gesturestart", e => e.preventDefault());
+
+// iframe 内に置かれると window の resize が来ないことがあるので、
+// コンテナ自体を観測する。取りこぼすとレイアウトが古いまま固まる。
+let renderQueued = false;
+function scheduleRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; render(); });
+}
+if (window.ResizeObserver) new ResizeObserver(scheduleRender).observe(stage);
+window.addEventListener("resize", scheduleRender);
+window.addEventListener("orientationchange", () => setTimeout(render, 200));
+if (window.visualViewport) window.visualViewport.addEventListener("resize", scheduleRender);
+render();
+</script>
+<!-- ARTIFACT:END -->
+</body>
+</html>
