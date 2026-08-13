@@ -109,7 +109,18 @@ public extension KeyboardGeometry {
     /// 統合レイアウト（iPhone 縦）には中央の空きがないので、そこだけは従来どおりキーの隣に開き、
     /// 画面外へ出ないようにクランプする。
     func popupPlacement(for key: PlacedKey, itemCount: Int) -> PopupPlacement? {
-        guard itemCount > 0, let panel = panel(containing: key.id) else { return nil }
+        guard let panel = panel(containing: key.id) else { return nil }
+        return popupPlacement(panel: panel, rect: key.rect, side: key.popupSide, itemCount: itemCount)
+    }
+
+    /// 当たり判定の結果から直接引く版。押している指ごとにポップアップを出すのに使う。
+    func popupPlacement(for hit: KeyHit, itemCount: Int) -> PopupPlacement? {
+        guard let panel = panels.first(where: { $0.id == hit.panelID }) else { return nil }
+        return popupPlacement(panel: panel, rect: hit.rect, side: hit.popupSide, itemCount: itemCount)
+    }
+
+    private func popupPlacement(panel: PanelGeometry, rect: CGRect, side: PopupSide, itemCount: Int) -> PopupPlacement? {
+        guard itemCount > 0 else { return nil }
 
         let padding = SplitKanaTuning.popupPadding
         let itemHeight = min(keyWidth, keyHeight) * SplitKanaTuning.popupItemRatio
@@ -129,21 +140,21 @@ public extension KeyboardGeometry {
         let x: CGFloat
         if isSplit {
             // パネルの内側端に固定。キーの位置によらず動かない。
-            switch key.popupSide {
+            switch side {
             case .trailing: x = panel.frame.maxX + gapX
             case .leading:  x = panel.frame.minX - gapX - width
             }
         } else {
             let unclamped: CGFloat
-            switch key.popupSide {
-            case .trailing: unclamped = panel.frame.minX + key.rect.maxX + gapX
-            case .leading:  unclamped = panel.frame.minX + key.rect.minX - gapX - width
+            switch side {
+            case .trailing: unclamped = panel.frame.minX + rect.maxX + gapX
+            case .leading:  unclamped = panel.frame.minX + rect.minX - gapX - width
             }
             x = min(max(unclamped, 0), max(0, containerSize.width - width))
         }
 
         // 縦はキーの行に合わせるが、パネルの上下からは出さない。
-        let desiredY = panel.frame.minY + key.rect.midY - height / 2
+        let desiredY = panel.frame.minY + rect.midY - height / 2
         let y = min(max(desiredY, panel.frame.minY), max(panel.frame.minY, panel.frame.maxY - height))
 
         return PopupPlacement(

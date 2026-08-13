@@ -125,6 +125,7 @@ SPEC 11 の未決事項（`scale`、`bottomInset`、フリックのしきい値�
 | 右パネル3列 / 4列の切り替え | ✅ `KeyboardConfiguration.showsDuplicateColumn` |
 | 機能列のホスト差し替え | ✅ `.keyboardExtension` / `.thinkingApp` |
 | フリックポップアップ（パネルの内側端に固定） | ✅ `KeyboardGeometry.popupPlacement` |
+| 両手の親指の同時押し | ✅ `KeyboardGeometry.hitTest` + `MultiTouchOverlay` |
 | カーソル移動 ◀▶ | ✅ ホストでも効く |
 | 🌐 / 英数 | ⬜ 表示のみ（🌐 は拡張でしか動かせない） |
 | かな漢字変換 | ⬜ プロトコルのみ（フェーズ4） |
