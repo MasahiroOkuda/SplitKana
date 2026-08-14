@@ -93,9 +93,18 @@ public struct ConversionController {
     }
 
     /// 選択中の候補で確定し、セッションを空に戻す。
+    ///
+    /// **確定はすべてここを通る。**だから学習への通知もここ1箇所でよい。
     private mutating func commit() -> ConversionEffect {
         let text = session.selected ?? session.reading
+        let reading = session.reading
         session = .empty
+        converter.learn(text, for: reading)
         return .commit(text)
+    }
+
+    /// 学習した内容を保存する。キーボードが降りるときに呼ぶ。
+    public func persistLearning() {
+        converter.persistLearning()
     }
 }

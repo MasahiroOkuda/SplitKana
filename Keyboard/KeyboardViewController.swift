@@ -80,6 +80,8 @@ final class KeyboardViewController: UIInputViewController {
         // キーボードが降りると未確定表示は系に残らない。
         // セッションだけ生き残ると、次の打鍵が宙に浮いた marked text を書きに行く。
         conversion?.session = .empty
+        // 覚えたことを書き出す。**拡張はここを逃すと殺されて消える。**
+        conversion?.persistLearning()
     }
 
     // MARK: - 組み立て
