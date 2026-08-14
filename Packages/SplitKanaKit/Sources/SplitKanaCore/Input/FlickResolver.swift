@@ -22,6 +22,17 @@ public enum SplitKanaTuning {
 
     /// ポップアップの内側余白。左右・上下に同じだけ入る。
     public static let popupPadding: CGFloat = 4
+
+    /// ⌫ を押しっぱなしにしてから連続削除が始まるまで。
+    /// 短すぎると1文字消すつもりが走り出す。
+    public static let repeatDelay: TimeInterval = 0.4
+
+    /// 連続削除の間隔。
+    public static let repeatInterval: TimeInterval = 0.07
+
+    /// 空白キーの左フリックで入れる文字。
+    /// 日本語の文章では全角のほうを使うことが多い。
+    public static let fullWidthSpace = "\u{3000}"
 }
 
 /// ドラッグ量からフリック方向を決める。

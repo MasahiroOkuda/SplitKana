@@ -45,6 +45,12 @@ public struct SplitKanaKeyboardView: View {
 
     @State private var fingers: [ObjectIdentifier: Finger] = [:]
 
+    /// ⌫ の長押しで走らせる連続削除。押している指ごとに1本だけ持つ。
+    @State private var repeating: (finger: ObjectIdentifier, task: Task<Void, Never>)?
+    /// 連続削除が1回でも走ったか。走ったなら離したときの1回を出さない
+    /// （押した時点の1回＋連続ぶん、で足りている）。
+    @State private var didRepeat = false
+
     public init(
         geometry: KeyboardGeometry,
         configuration: KeyboardConfiguration,
@@ -166,6 +172,9 @@ public struct SplitKanaKeyboardView: View {
         case .began:
             guard let hit = geometry.hitTest(point) else { return }
             fingers[id] = Finger(start: point, hit: hit, direction: .center)
+            if hit.key.kind == .backspace {
+                startRepeatingBackspace(for: id)
+            }
 
         case .moved:
             guard var finger = fingers[id] else { return }
@@ -177,12 +186,43 @@ public struct SplitKanaKeyboardView: View {
             fingers[id] = finger
 
         case .ended:
+            let repeated = stopRepeatingBackspace(for: id)
             guard let finger = fingers.removeValue(forKey: id) else { return }
+            // 連続削除が走ったなら、離したときの1回は出さない。
+            guard !repeated else { return }
             emit(finger)
 
         case .cancelled:
+            _ = stopRepeatingBackspace(for: id)
             fingers.removeValue(forKey: id)
         }
+    }
+
+    /// ⌫ を押しっぱなしにしたら、少し待って連続削除を始める。
+    ///
+    /// 待たずに走らせると、1文字消すつもりの短い押下でも走り出してしまう。
+    private func startRepeatingBackspace(for id: ObjectIdentifier) {
+        repeating?.task.cancel()
+        didRepeat = false
+        let task = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(SplitKanaTuning.repeatDelay))
+            while !Task.isCancelled {
+                didRepeat = true
+                onOutput(.backspace)
+                try? await Task.sleep(for: .seconds(SplitKanaTuning.repeatInterval))
+            }
+        }
+        repeating = (id, task)
+    }
+
+    /// 連続削除を止める。**走っていたかどうかを返す。**
+    private func stopRepeatingBackspace(for id: ObjectIdentifier) -> Bool {
+        guard let repeating, repeating.finger == id else { return false }
+        repeating.task.cancel()
+        self.repeating = nil
+        let repeated = didRepeat
+        didRepeat = false
+        return repeated
     }
 
     private func emit(_ finger: Finger) {
