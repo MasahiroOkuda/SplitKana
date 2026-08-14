@@ -2,14 +2,28 @@
 import SwiftUI
 import SplitKanaCore
 
-/// 変換候補を並べて見せるだけのビュー（SPEC 5.2）。
+/// 変換候補を見せるだけのビュー（SPEC 5.2）。
 ///
 /// **タップさせない。**中央は親指が届かないので、候補は空白キーで送る。
-/// 入りきらない分は切る。選択中が必ず見えるよう、選択中を中央付近に置く。
+///
+/// 見せ方の要点は3つ。
+///
+/// 1. **読みを消さない。**候補だけを出すと、何度か送るうちに
+///    自分が何と打とうとしていたのか画面から分からなくなる
+/// 2. **いま何番目かを出す。**送った回数を数えなくても現在地が分かるように
+/// 3. **前後をうっすら添える。**次に何が来るかの予告。端では出さない
+///
+/// ```
+/// かんがえ                    3 / 12
+///     考え   [ 考え ]   勘が絵
+/// ```
 public struct CandidateBarView: View {
 
     private let session: ConversionSession
     private let region: CGRect
+
+    /// このビューが必要とする高さ。置き場所を決める側と食い違わないよう公開する。
+    public static let preferredHeight: CGFloat = 62
 
     public init(session: ConversionSession, region: CGRect) {
         self.session = session
@@ -18,27 +32,17 @@ public struct CandidateBarView: View {
 
     public var body: some View {
         // 何も表示することがなければ何も描かない。背景だけ描くバーは誤座標の罠になる。
-        if !visible.isEmpty {
-            HStack(spacing: 6) {
-                ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
-                    Text(item.text)
-                        .font(.system(size: 18))
-                        .lineLimit(1)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(item.isSelected ? Color.accentColor.opacity(0.20) : Color.clear)
-                        )
-                        .foregroundStyle(item.isSelected ? Color.primary : Color.secondary)
-                }
-                Spacer(minLength: 0)
+        if session.isComposing {
+            VStack(alignment: .leading, spacing: 2) {
+                readingRow
+                candidateRow
             }
-            .padding(.horizontal, 8)
-            .frame(width: region.width, height: 40, alignment: .leading)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .frame(width: region.width, height: Self.preferredHeight, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color(white: 1.0).opacity(0.92))
+                    .fill(Color(white: 1.0).opacity(0.94))
             )
             .offset(x: region.minX, y: region.minY)
             // 表示専用。タッチはキーボードのものを邪魔しない。
@@ -46,23 +50,64 @@ public struct CandidateBarView: View {
         }
     }
 
-    private struct Item {
-        let text: String
-        let isSelected: Bool
+    /// 上段：読みと現在地。**読みはどの候補を選んでいても消えない。**
+    private var readingRow: some View {
+        HStack(spacing: 8) {
+            Text(session.reading)
+                .font(.system(size: 13))
+                .foregroundStyle(Self.secondaryInk)
+                .lineLimit(1)
+                .truncationMode(.head)
+
+            Spacer(minLength: 4)
+
+            if let position = session.position, position.total > 1 {
+                Text("\(position.index) / \(position.total)")
+                    .font(.system(size: 12, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Self.secondaryInk)
+            }
+        }
     }
 
-    /// 選択中が必ず入るよう、その前後だけを取る。
-    private var visible: [Item] {
-        guard !session.candidates.isEmpty else {
-            return session.isComposing ? [Item(text: session.reading, isSelected: true)] : []
-        }
-        let maximum = 8
-        let count = session.candidates.count
-        let start = max(0, min(session.selection - maximum / 2, count - maximum))
-        let end = min(count, start + maximum)
-        return (start..<end).map {
-            Item(text: session.candidates[$0], isSelected: $0 == session.selection)
+    /// 下段：前・選択中・次。端では無い方向に何も出さない。
+    private var candidateRow: some View {
+        HStack(spacing: 10) {
+            neighbour(session.previousCandidate)
+
+            Text(session.selected ?? session.reading)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(Self.primaryInk)
+                .lineLimit(1)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 1)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.18))
+                )
+                .layoutPriority(1)
+
+            neighbour(session.nextCandidate)
+
+            Spacer(minLength: 0)
         }
     }
+
+    @ViewBuilder
+    private func neighbour(_ text: String?) -> some View {
+        if let text {
+            Text(text)
+                .font(.system(size: 15))
+                .foregroundStyle(Self.fadedInk)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+    }
+
+    // 背景を明るい色に固定しているので、文字色も固定する。
+    // `Color.primary` はダークモードで白くなり、白い帯の上で読めなくなる。
+    private static let primaryInk = Color(white: 0.10)
+    private static let secondaryInk = Color(white: 0.42)
+    private static let fadedInk = Color(white: 0.62)
 }
 #endif
