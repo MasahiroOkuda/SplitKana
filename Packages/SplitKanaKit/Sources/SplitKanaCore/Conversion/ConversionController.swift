@@ -35,6 +35,22 @@ public struct ConversionController {
             guard session.isComposing else { return [] }
             return [moveCandidate(by: step)]
 
+        case .newline where session.isComposing:
+            return [commit()]
+
+        case .dakuten where session.isComposing:
+            guard let last = session.reading.last,
+                  let cycled = DakutenCycle.next(after: last) else {
+                return []
+            }
+            session.reading.removeLast()
+            session.reading.append(cycled)
+            return [refreshCandidates()]
+
+        case .cursor, .nextInputMode:
+            guard session.isComposing else { return [.passthrough(output)] }
+            return [commit(), .passthrough(output)]
+
         default:
             return [.passthrough(output)]
         }
@@ -53,5 +69,12 @@ public struct ConversionController {
         guard count > 0 else { return .markedText(session.reading) }
         session.selection = ((session.selection + step) % count + count) % count
         return .markedText(session.selected ?? session.reading)
+    }
+
+    /// 選択中の候補で確定し、セッションを空に戻す。
+    private mutating func commit() -> ConversionEffect {
+        let text = session.selected ?? session.reading
+        session = .empty
+        return .commit(text)
     }
 }
