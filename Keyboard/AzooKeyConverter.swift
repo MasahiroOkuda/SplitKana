@@ -28,6 +28,7 @@ final class AzooKeyConverter: KanaKanjiConverting {
     }
 
     nonisolated func candidates(for reading: String) -> [String] {
+        // KeyboardViewController.handle(_:) がメインスレッド同期に呼ぶ前提。崩れると即クラッシュする。
         MainActor.assumeIsolated {
             guard !reading.isEmpty else { return [] }
             var composing = ComposingText()

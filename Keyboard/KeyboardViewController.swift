@@ -18,6 +18,23 @@ final class KeyboardViewController: UIInputViewController {
     /// 設定パネルを開いているか。
     private var isShowingSettings = false
 
+    /// 変換の状態機械。**生成が重いので最初のかな入力まで作らない**（SPEC 10）。
+    private var conversion: ConversionController?
+
+    private var conversionSession: ConversionSession {
+        conversion?.session ?? .empty
+    }
+
+    private func ensureConversion() -> ConversionController {
+        if let conversion { return conversion }
+        // AzooKeyConverter.candidates(for:) は MainActor.assumeIsolated を使う。
+        // キー入力は UIInputViewController 経由でメインスレッド同期に届くので、
+        // ここで作って ConversionController 経由で呼ぶかぎりその前提が崩れない。
+        let created = ConversionController(converter: AzooKeyConverter())
+        conversion = created
+        return created
+    }
+
     /// 直前に高さを計算したときの入力。同じなら計算し直さない。
     private var lastHeightInput: HeightInput?
 
@@ -69,6 +86,7 @@ final class KeyboardViewController: UIInputViewController {
             configuration: configuration,
             deviceClass: currentDeviceClass,
             isShowingSettings: isShowingSettings,
+            session: conversionSession,
             onOutput: { [weak self] output in self?.handle(output) },
             onSettingsChanged: { [weak self] in self?.reloadSettings() },
             onCloseSettings: { [weak self] in
@@ -158,12 +176,36 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    // MARK: - KeyOutput → textDocumentProxy
+    // MARK: - KeyOutput → 変換 → textDocumentProxy
 
-    /// **この関数が拡張の本体。**`SplitKanaCore` が出した出力を proxy に落とすだけ。
+    /// キーボードからの出力。まず変換に通し、出てきた効果を proxy に落とす。
     private func handle(_ output: KeyOutput) {
-        let proxy = textDocumentProxy
+        var controller = ensureConversion()
+        let effects = controller.handle(output)
+        conversion = controller
 
+        for effect in effects {
+            switch effect {
+            case .markedText(let text):
+                textDocumentProxy.setMarkedText(
+                    text, selectedRange: NSRange(location: text.utf16.count, length: 0))
+            case .commit(let text):
+                textDocumentProxy.unmarkText()
+                textDocumentProxy.insertText(text)
+            case .clear:
+                textDocumentProxy.unmarkText()
+            case .passthrough(let output):
+                apply(output)
+            }
+        }
+
+        // 候補の表示を更新する。
+        refreshRootView()
+    }
+
+    /// 変換に関係ない出力を proxy に流す。
+    private func apply(_ output: KeyOutput) {
+        let proxy = textDocumentProxy
         switch output {
         case .insert(let text):
             proxy.insertText(text)
@@ -187,12 +229,12 @@ final class KeyboardViewController: UIInputViewController {
         case .cursor(let offset):
             proxy.adjustTextPosition(byCharacterOffset: offset)
 
+        case .candidate:
+            break   // 変換中しか意味を持たない
+
         case .nextInputMode:
             // 地球キー。これが無いと他のキーボードに戻れない（SPEC 2.2）。
             advanceToNextInputMode()
-
-        case .candidate:
-            break   // 変換中しか意味を持たない
 
         case KeyboardConfiguration.settingsOutput:
             // 拡張は別画面を出せないので、キーボードの中でパネルを開閉する（SPEC 4）。
@@ -202,5 +244,14 @@ final class KeyboardViewController: UIInputViewController {
         case .custom:
             break
         }
+    }
+
+    /// 候補表示だけを更新する。寸法は変わらないので作り直さない。
+    private func refreshRootView() {
+        guard let geometry = hosting?.rootView.geometry else { return }
+        hosting?.rootView = makeRootView(
+            geometry: geometry,
+            configuration: KeyboardSettings.configuration(for: currentDeviceClass)
+        )
     }
 }
