@@ -14,6 +14,8 @@ public enum KeyOutput: Equatable, Sendable {
     case dakuten
     /// 相対移動（-1 / +1）
     case cursor(Int)
+    /// 変換候補を送る。+1 で次、-1 で前（SPEC 5.2）
+    case candidate(Int)
     /// 地球キー（拡張のみ）
     case nextInputMode
     /// 「結ぶ」「囲む」など（アプリ内のみ）

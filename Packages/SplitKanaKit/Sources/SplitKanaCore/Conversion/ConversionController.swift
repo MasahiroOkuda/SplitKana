@@ -28,6 +28,13 @@ public struct ConversionController {
             }
             return [refreshCandidates()]
 
+        case .space where session.isComposing:
+            return [moveCandidate(by: 1)]
+
+        case .candidate(let step):
+            guard session.isComposing else { return [] }
+            return [moveCandidate(by: step)]
+
         default:
             return [.passthrough(output)]
         }
@@ -37,6 +44,14 @@ public struct ConversionController {
     private mutating func refreshCandidates() -> ConversionEffect {
         session.candidates = converter.candidates(for: session.reading)
         session.selection = 0
+        return .markedText(session.selected ?? session.reading)
+    }
+
+    /// 候補を送る。**引き直さない。**端は巡回する。
+    private mutating func moveCandidate(by step: Int) -> ConversionEffect {
+        let count = session.candidates.count
+        guard count > 0 else { return .markedText(session.reading) }
+        session.selection = ((session.selection + step) % count + count) % count
         return .markedText(session.selected ?? session.reading)
     }
 }
