@@ -91,8 +91,16 @@ public extension KeyboardConfiguration {
             // 英数は未実装で押しても何も起きなかったので、ここを ⚙ に充てた。
             // ◀▶ は両手が塞がったままカーソルを動かせる利点があるので残す（SPEC 2.2）。
             FunctionKey(title: "⚙", output: KeyboardConfiguration.settingsOutput),
-            FunctionKey(title: "◀", output: .cursor(-1)),
-            FunctionKey(title: "▶", output: .cursor(1))
+            // **1つのキーで左右を兼ねる。**左右に振ってカーソルを動かす。
+            // 席が4つしか無いので、◀▶ で2つ使うと英数のぶんが残らない。
+            // タップは何もしない（動かす向きが決まらないため）。
+            FunctionKey(
+                title: "◀▶",
+                output: .custom("noop"),
+                flickOutputs: [.left: .cursor(-1), .right: .cursor(1)]
+            ),
+            // 英数モード用に空けてある。実装が入るまでは何もしない。
+            FunctionKey(title: "", output: .custom("noop"))
         ])
     }
 
