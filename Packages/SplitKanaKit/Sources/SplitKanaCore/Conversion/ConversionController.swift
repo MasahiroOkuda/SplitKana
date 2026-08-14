@@ -59,8 +59,14 @@ public struct ConversionController {
     }
 
     /// 読みが変わったので候補を引き直す。選択は先頭に戻す。
+    ///
+    /// **第1候補は必ず無変換（読みそのまま）。**打っている最中に
+    /// 勝手に漢字へ化けると、目で追う対象が一打ごとに変わって落ち着かない。
+    /// 変換したいときだけ空白キーで送る、という操作に揃える。
     private mutating func refreshCandidates() -> ConversionEffect {
-        session.candidates = converter.candidates(for: session.reading)
+        let converted = converter.candidates(for: session.reading)
+        // 変換器が読みと同じものを返すことがある。先頭と重複させない。
+        session.candidates = [session.reading] + converted.filter { $0 != session.reading }
         session.selection = 0
         return .markedText(session.selected ?? session.reading)
     }

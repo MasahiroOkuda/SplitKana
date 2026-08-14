@@ -31,9 +31,10 @@ final class ConversionControllerTests: XCTestCase {
         var c = controller()
         let effects = c.handle(.insert("か"))
         XCTAssertEqual(c.session.reading, "か")
-        XCTAssertEqual(c.session.candidates, ["下", "課"])
+        XCTAssertEqual(c.session.candidates, ["か", "下", "課"],
+                       "第1候補は必ず無変換の読み")
         XCTAssertEqual(c.session.selection, 0)
-        XCTAssertEqual(effects, [.markedText("下")])
+        XCTAssertEqual(effects, [.markedText("か")], "打っている間は漢字に化けない")
     }
 
     func testEachKanaRefreshesCandidatesAndResetsSelection() {
@@ -42,9 +43,50 @@ final class ConversionControllerTests: XCTestCase {
         c.session.selection = 1
         let effects = c.handle(.insert("ん"))
         XCTAssertEqual(c.session.reading, "かん")
-        XCTAssertEqual(c.session.candidates, ["感", "缶", "巻"])
+        XCTAssertEqual(c.session.candidates, ["かん", "感", "缶", "巻"])
         XCTAssertEqual(c.session.selection, 0, "読みが変わったら選択は先頭に戻る")
-        XCTAssertEqual(effects, [.markedText("感")])
+        XCTAssertEqual(effects, [.markedText("かん")])
+    }
+
+    // MARK: - 第1候補は必ず無変換
+
+    /// **打っている最中に勝手に漢字へ化けない。**
+    /// 変換したいときだけ空白キーで送る。
+    func testFirstCandidateIsAlwaysTheUnconvertedReading() {
+        var c = controller()
+        for reading in ["か", "かん"] {
+            var built = controller()
+            for character in reading {
+                _ = built.handle(.insert(String(character)))
+            }
+            XCTAssertEqual(built.session.candidates.first, reading,
+                           "\(reading) の第1候補が無変換になっていない")
+            XCTAssertEqual(built.session.selected, reading)
+        }
+
+        // 送れば変換候補に入り、一周すれば無変換に戻る。
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        XCTAssertEqual(c.session.selected, "かん")
+        _ = c.handle(.space)
+        XCTAssertEqual(c.session.selected, "感")
+    }
+
+    /// 変換器が読みと同じものを返しても、先頭に2つ並べない。
+    func testTheReadingIsNotDuplicatedWhenTheConverterReturnsIt() {
+        var c = controller(["か": ["か", "下"]])
+        _ = c.handle(.insert("か"))
+        XCTAssertEqual(c.session.candidates, ["か", "下"])
+    }
+
+    /// 確定せずに読みだけ伸ばしても、常に無変換が先頭に居続ける。
+    func testTheReadingStaysFirstAsItGrows() {
+        var c = controller(["か": ["下"], "かん": ["感"], "かんが": ["考"]])
+        for (character, reading) in zip("かんが", ["か", "かん", "かんが"]) {
+            _ = c.handle(.insert(String(character)))
+            XCTAssertEqual(c.session.candidates.first, reading)
+            XCTAssertEqual(c.session.selection, 0)
+        }
     }
 
     func testMarkedTextFallsBackToTheReadingWhenThereIsNoCandidate() {
@@ -59,7 +101,7 @@ final class ConversionControllerTests: XCTestCase {
         _ = c.handle(.insert("ん"))
         let effects = c.handle(.backspace)
         XCTAssertEqual(c.session.reading, "か")
-        XCTAssertEqual(effects, [.markedText("下")])
+        XCTAssertEqual(effects, [.markedText("か")])
     }
 
     func testBackspaceOnTheLastCharacterClearsTheSession() {
@@ -81,18 +123,19 @@ final class ConversionControllerTests: XCTestCase {
         _ = c.handle(.insert("ん"))
         let effects = c.handle(.space)
         XCTAssertEqual(c.session.selection, 1)
-        XCTAssertEqual(effects, [.markedText("缶")])
+        XCTAssertEqual(effects, [.markedText("感")], "1回送って初めて変換候補が出る")
     }
 
     func testCandidateSelectionWrapsAround() {
         var c = controller()
         _ = c.handle(.insert("か"))
         _ = c.handle(.insert("ん"))
+        _ = c.handle(.space)      // 感
         _ = c.handle(.space)      // 缶
         _ = c.handle(.space)      // 巻
         let effects = c.handle(.space)
         XCTAssertEqual(c.session.selection, 0, "末尾の次は先頭に戻る")
-        XCTAssertEqual(effects, [.markedText("感")])
+        XCTAssertEqual(effects, [.markedText("かん")], "一周したら無変換に戻る")
     }
 
     func testBackwardCandidateWrapsAround() {
@@ -100,7 +143,7 @@ final class ConversionControllerTests: XCTestCase {
         _ = c.handle(.insert("か"))
         _ = c.handle(.insert("ん"))
         let effects = c.handle(.candidate(-1))
-        XCTAssertEqual(c.session.selection, 2, "先頭の前は末尾へ回る")
+        XCTAssertEqual(c.session.selection, 3, "先頭の前は末尾へ回る")
         XCTAssertEqual(effects, [.markedText("巻")])
     }
 
@@ -135,9 +178,9 @@ final class ConversionControllerTests: XCTestCase {
         var c = controller()
         _ = c.handle(.insert("か"))
         _ = c.handle(.insert("ん"))
-        _ = c.handle(.space)                     // 缶
+        _ = c.handle(.space)                     // 感
         let effects = c.handle(.newline)
-        XCTAssertEqual(effects, [.commit("缶")])
+        XCTAssertEqual(effects, [.commit("感")])
         XCTAssertFalse(c.session.isComposing, "確定したらセッションは空になる")
         XCTAssertTrue(c.session.candidates.isEmpty)
     }
@@ -151,7 +194,7 @@ final class ConversionControllerTests: XCTestCase {
         var c = controller()
         _ = c.handle(.insert("か"))
         let effects = c.handle(.cursor(-1))
-        XCTAssertEqual(effects, [.commit("下"), .passthrough(.cursor(-1))])
+        XCTAssertEqual(effects, [.commit("か"), .passthrough(.cursor(-1))])
         XCTAssertFalse(c.session.isComposing)
     }
 
@@ -159,7 +202,7 @@ final class ConversionControllerTests: XCTestCase {
         var c = controller()
         _ = c.handle(.insert("か"))
         let effects = c.handle(.nextInputMode)
-        XCTAssertEqual(effects, [.commit("下"), .passthrough(.nextInputMode)])
+        XCTAssertEqual(effects, [.commit("か"), .passthrough(.nextInputMode)])
     }
 
     /// ⚙ は `.custom("settings")`。設定を開いても未確定の読みは残す。
