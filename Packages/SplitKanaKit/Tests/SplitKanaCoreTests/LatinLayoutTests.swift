@@ -43,7 +43,7 @@ final class LatinLayoutTests: XCTestCase {
         XCTAssertEqual(labels(panel(.right, g)),
                        ["y", "u", "i", "o", "p",
                         "h", "j", "k", "l",
-                        "n", "m", ",", ".", "⌫",
+                        "b", "n", "m", ",", ".", "⌫",
                         "空白", "改行"])
     }
 
@@ -75,6 +75,34 @@ final class LatinLayoutTests: XCTestCase {
                        g.keyWidth * 6 + g.gapX * 5, accuracy: 0.5)
     }
 
+    /// B は左右どちらのパネルにもある。かなの あ列 と同じ重複（SPEC 2.1）。
+    func testBAppearsOnBothPanels() {
+        for shifted in [false, true] {
+            let g = geometry(shifted: shifted)
+            let letter = shifted ? "B" : "b"
+            let left = panel(.left, g).keys.first { $0.key.kind.label == letter }!
+            let right = panel(.right, g).keys.first { $0.key.kind.label == letter }!
+
+            // 出力は完全に同一。違いは見た目だけ（SPEC 10）。
+            XCTAssertEqual(left.key.kind.output(for: .center),
+                           right.key.kind.output(for: .center))
+            XCTAssertFalse(left.isDuplicate)
+            XCTAssertTrue(right.isDuplicate)
+        }
+    }
+
+    /// B は N の左。N から右のキーはこれまでの位置から動かない。
+    func testDuplicateBSitsLeftOfN() {
+        let g = geometry()
+        let keys = panel(.right, g).keys
+        let b = keys.first { $0.key.kind.label == "b" }!
+        let n = keys.first { $0.key.kind.label == "n" }!
+        XCTAssertEqual(b.rect.midY, n.rect.midY, accuracy: 0.5)
+        XCTAssertEqual(n.rect.minX - b.rect.minX, g.keyWidth + g.gapX, accuracy: 0.5)
+        // かつて N があった場所（左から1列目）に N が残っていること。
+        XCTAssertEqual(n.rect.minX, g.keyWidth + g.gapX, accuracy: 0.5)
+    }
+
     func testCommaAndPeriodAreAscii() {
         for shifted in [false, true] {
             let keys = panel(.right, geometry(shifted: shifted)).keys
@@ -96,8 +124,9 @@ final class LatinLayoutTests: XCTestCase {
         XCTAssertEqual(left.keys[10].rect.minX, 0, accuracy: 0.5)                             // ⇧
 
         let right = panel(.right, g)
-        XCTAssertEqual(right.keys[5].rect.minX - right.keys[0].rect.minX, step, accuracy: 0.5)  // h
-        XCTAssertEqual(right.keys[9].rect.minX - right.keys[0].rect.minX, step * 2, accuracy: 0.5) // n
+        let x = { (label: String) in right.keys.first { $0.key.kind.label == label }!.rect.minX }
+        XCTAssertEqual(x("h") - x("y"), step, accuracy: 0.5)
+        XCTAssertEqual(x("n") - x("y"), step * 2, accuracy: 0.5)
     }
 
     func testWideKeysSpanColumns() {

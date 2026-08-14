@@ -95,11 +95,17 @@ public struct KeyDescriptor: Equatable, Sendable {
     public let rowSpan: Int
     /// 横に占める列数。英数モードの空白・改行だけ 2 以上。
     public let columnSpan: Int
+    /// 反対側のパネルにもある同じキーか。**見た目にしか効かない**（SPEC 2.1 / 10）。
+    ///
+    /// かなの あ列 は列ごと複製するので配置側で決まるが、
+    /// 英数の B のように1キーだけ複製する場合はここで持つ。
+    public let isDuplicate: Bool
 
-    public init(_ kind: KeyKind, rowSpan: Int = 1, columnSpan: Int = 1) {
+    public init(_ kind: KeyKind, rowSpan: Int = 1, columnSpan: Int = 1, isDuplicate: Bool = false) {
         self.kind = kind
         self.rowSpan = rowSpan
         self.columnSpan = columnSpan
+        self.isDuplicate = isDuplicate
     }
 }
 
