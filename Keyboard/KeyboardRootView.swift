@@ -19,6 +19,7 @@ struct KeyboardRootView: View {
     let configuration: KeyboardConfiguration
     let deviceClass: DeviceClass
     let isShowingSettings: Bool
+    let session: ConversionSession
     let onOutput: (KeyOutput) -> Void
     /// 設定が変わった。呼び出し側が読み直して再レイアウトする。
     let onSettingsChanged: () -> Void
@@ -33,6 +34,11 @@ struct KeyboardRootView: View {
                     touchArea: touchArea(for: geometry),
                     onOutput: onOutput
                 )
+
+                // 設定パネルとは排他。⚙ を開いている間は候補を出さない。
+                if session.isComposing, !isShowingSettings {
+                    CandidateBarView(session: session, region: candidateRegion(for: geometry))
+                }
 
                 if isShowingSettings {
                     KeyboardSettingsPanel(
@@ -71,6 +77,15 @@ struct KeyboardRootView: View {
             ? geometry.freeRegion
             : CGRect(origin: .zero, size: geometry.containerSize)
         return region.insetBy(dx: 6, dy: 6)
+    }
+
+    /// 候補バーの置き場所。分割時は中央の空きの上寄り、統合時はキーボード上端。
+    private func candidateRegion(for geometry: KeyboardGeometry) -> CGRect {
+        let region = geometry.isSplit
+            ? geometry.freeRegion
+            : CGRect(origin: .zero, size: geometry.containerSize)
+        return CGRect(x: region.minX + 6, y: region.minY + 6,
+                      width: max(0, region.width - 12), height: 40)
     }
 }
 
