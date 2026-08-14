@@ -127,4 +127,59 @@ final class ConversionControllerTests: XCTestCase {
         var c = controller()
         XCTAssertEqual(c.handle(.candidate(-1)), [])
     }
+
+    func testNewlineCommitsTheSelectedCandidate() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        _ = c.handle(.space)                     // 缶
+        let effects = c.handle(.newline)
+        XCTAssertEqual(effects, [.commit("缶")])
+        XCTAssertFalse(c.session.isComposing, "確定したらセッションは空になる")
+        XCTAssertTrue(c.session.candidates.isEmpty)
+    }
+
+    func testNewlineWhenNotComposingPassesThrough() {
+        var c = controller()
+        XCTAssertEqual(c.handle(.newline), [.passthrough(.newline)])
+    }
+
+    func testCursorCommitsFirstThenPassesThrough() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        let effects = c.handle(.cursor(-1))
+        XCTAssertEqual(effects, [.commit("下"), .passthrough(.cursor(-1))])
+        XCTAssertFalse(c.session.isComposing)
+    }
+
+    func testNextInputModeCommitsFirstThenPassesThrough() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        let effects = c.handle(.nextInputMode)
+        XCTAssertEqual(effects, [.commit("下"), .passthrough(.nextInputMode)])
+    }
+
+    /// ⚙ は `.custom("settings")`。設定を開いても未確定の読みは残す。
+    func testCustomDoesNotCommit() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        let effects = c.handle(.custom("settings"))
+        XCTAssertEqual(effects, [.passthrough(.custom("settings"))])
+        XCTAssertTrue(c.session.isComposing, "設定を開いても読みは消えない")
+    }
+
+    func testDakutenCyclesTheLastCharacterOfTheReading() {
+        var c = controller(["かん": ["感"], "がん": ["岸", "眼"]])
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        _ = c.handle(.backspace)                 // 「か」に戻す
+        let effects = c.handle(.dakuten)
+        XCTAssertEqual(c.session.reading, "が")
+        XCTAssertEqual(effects, [.markedText("が")], "候補が無いので読みがそのまま出る")
+    }
+
+    func testDakutenWhenNotComposingPassesThrough() {
+        var c = controller()
+        XCTAssertEqual(c.handle(.dakuten), [.passthrough(.dakuten)])
+    }
 }
