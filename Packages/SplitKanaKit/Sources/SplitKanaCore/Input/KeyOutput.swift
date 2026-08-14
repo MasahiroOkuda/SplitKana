@@ -21,3 +21,22 @@ public enum KeyOutput: Equatable, Sendable {
     /// 「結ぶ」「囲む」など（アプリ内のみ）
     case custom(String)
 }
+
+public extension KeyOutput {
+
+    /// 押しっぱなしで繰り返してよいか（SPEC 2.5）。
+    ///
+    /// **キーではなく出力で決める。**⌫ の長押しも、カーソルキーのフリック維持も、
+    /// 「同じことを続けたい」という同じ操作なので、同じ仕組みに乗せる。
+    ///
+    /// 文字の挿入は繰り返さない。押しっぱなしで同じ字が並ぶのは事故にしかならない。
+    /// 変換候補送りも繰り返さない（行き過ぎたぶんを戻す操作が要るだけ）。
+    var repeatsWhileHeld: Bool {
+        switch self {
+        case .backspace, .cursor:
+            return true
+        case .insert, .space, .newline, .dakuten, .candidate, .nextInputMode, .custom:
+            return false
+        }
+    }
+}
