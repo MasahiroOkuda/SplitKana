@@ -66,8 +66,18 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        clearInputAssistant()
         // SPEC 10: 起動が遅いと体感が悪い。ここでは載せるだけで、重い処理をしない。
         installKeyboard()
+    }
+
+    /// iPad でキーボードの上に出るショートカットバーの項目を空にする。
+    ///
+    /// 元に戻す・書式などの項目が並ぶが、このキーボードでは使わない。
+    /// 縦を専有するだけなので落とす。
+    private func clearInputAssistant() {
+        inputAssistantItem.leadingBarButtonGroups = []
+        inputAssistantItem.trailingBarButtonGroups = []
     }
 
     override func viewWillLayoutSubviews() {
