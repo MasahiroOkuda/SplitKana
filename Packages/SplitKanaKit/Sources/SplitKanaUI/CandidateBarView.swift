@@ -17,30 +17,33 @@ public struct CandidateBarView: View {
     }
 
     public var body: some View {
-        HStack(spacing: 6) {
-            ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
-                Text(item.text)
-                    .font(.system(size: 18))
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(item.isSelected ? Color.accentColor.opacity(0.20) : Color.clear)
-                    )
-                    .foregroundStyle(item.isSelected ? Color.primary : Color.secondary)
+        // 何も表示することがなければ何も描かない。背景だけ描くバーは誤座標の罠になる。
+        if !visible.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
+                    Text(item.text)
+                        .font(.system(size: 18))
+                        .lineLimit(1)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(item.isSelected ? Color.accentColor.opacity(0.20) : Color.clear)
+                        )
+                        .foregroundStyle(item.isSelected ? Color.primary : Color.secondary)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, 8)
+            .frame(width: region.width, height: 40, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(white: 1.0).opacity(0.92))
+            )
+            .offset(x: region.minX, y: region.minY)
+            // 表示専用。タッチはキーボードのものを邪魔しない。
+            .allowsHitTesting(false)
         }
-        .padding(.horizontal, 8)
-        .frame(width: region.width, height: 40, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(white: 1.0).opacity(0.92))
-        )
-        .offset(x: region.minX, y: region.minY)
-        // 表示専用。タッチはキーボードのものを邪魔しない。
-        .allowsHitTesting(false)
     }
 
     private struct Item {

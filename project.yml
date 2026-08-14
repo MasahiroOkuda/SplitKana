@@ -41,7 +41,9 @@ targets:
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: XJ28ZGLVWC
+        # Xcode の「Signing & Capabilities」で選択したチームと同じ値にすること。
+        # 異なるとビルドのたびに上書きされる。
+        DEVELOPMENT_TEAM: PPB74JD3JG
 
   # キーボード拡張（SPEC 7 フェーズ2）。
   # Bundle ID は必ず親アプリの Bundle ID + サフィックスにする。
@@ -76,7 +78,7 @@ targets:
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: XJ28ZGLVWC
+        DEVELOPMENT_TEAM: PPB74JD3JG
 
 # スキームは共有保存しておく。
 # 定義しないと Xcode が各ターゲットぶんを勝手に作り、xcodegen generate のたびに

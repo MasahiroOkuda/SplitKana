@@ -194,11 +194,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3B49017F3EDDC96B9FFF0DF0 = {
-						DevelopmentTeam = XJ28ZGLVWC;
+						DevelopmentTeam = PPB74JD3JG;
 						ProvisioningStyle = Automatic;
 					};
 					6297AA10916B744CD444FE19 = {
-						DevelopmentTeam = XJ28ZGLVWC;
+						DevelopmentTeam = PPB74JD3JG;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -334,7 +334,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = XJ28ZGLVWC;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
 				INFOPLIST_FILE = "Generated/SplitKanaHost-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -352,7 +352,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = XJ28ZGLVWC;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
 				INFOPLIST_FILE = "Generated/SplitKanaKeyboard-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -373,7 +373,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = XJ28ZGLVWC;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
 				INFOPLIST_FILE = "Generated/SplitKanaHost-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -391,7 +391,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = XJ28ZGLVWC;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
 				INFOPLIST_FILE = "Generated/SplitKanaKeyboard-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
