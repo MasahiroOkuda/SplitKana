@@ -20,7 +20,7 @@ struct TypingStats: Equatable {
         case .backspace:
             start()
             backspaces += 1
-        case .dakuten, .cursor, .nextInputMode, .custom:
+        case .dakuten, .cursor, .nextInputMode, .candidate, .custom:
             break
         }
     }

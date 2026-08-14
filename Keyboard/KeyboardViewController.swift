@@ -191,6 +191,9 @@ final class KeyboardViewController: UIInputViewController {
             // 地球キー。これが無いと他のキーボードに戻れない（SPEC 2.2）。
             advanceToNextInputMode()
 
+        case .candidate:
+            break   // 変換中しか意味を持たない
+
         case KeyboardConfiguration.settingsOutput:
             // 拡張は別画面を出せないので、キーボードの中でパネルを開閉する（SPEC 4）。
             isShowingSettings.toggle()
