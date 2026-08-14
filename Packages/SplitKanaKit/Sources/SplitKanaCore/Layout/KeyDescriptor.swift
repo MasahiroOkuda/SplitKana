@@ -5,9 +5,20 @@ public struct FunctionKey: Equatable, Sendable {
     public let title: String
     public let output: KeyOutput
 
-    public init(title: String, output: KeyOutput) {
+    /// 方向ごとの出力。指定の無い方向は `output` に落ちる。
+    ///
+    /// カーソルキーのように**1つのキーで左右を兼ねる**ために使う。
+    /// 機能列は4つしか席が無いので、席を節約したいときに効く。
+    public let flickOutputs: [FlickDirection: KeyOutput]
+
+    public init(
+        title: String,
+        output: KeyOutput,
+        flickOutputs: [FlickDirection: KeyOutput] = [:]
+    ) {
         self.title = title
         self.output = output
+        self.flickOutputs = flickOutputs
     }
 }
 
@@ -60,6 +71,8 @@ public enum KeyKind: Equatable, Sendable {
             return .insert(set.character(for: direction))
         case .space:
             return direction == .left ? .candidate(-1) : .space
+        case .function(let key):
+            return key.flickOutputs[direction] ?? key.output
         default:
             return baseOutput
         }
