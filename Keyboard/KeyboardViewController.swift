@@ -18,6 +18,23 @@ final class KeyboardViewController: UIInputViewController {
     /// 設定パネルを開いているか。
     private var isShowingSettings = false
 
+    /// かなを打っているか、英数を打っているか。
+    private var mode: InputMode = .kana
+
+    /// ⇧ の状態（SPEC 2.6）。
+    private enum ShiftState {
+        case off
+        /// 次の1文字だけ大文字。打ったら消える。
+        case oneShot
+        /// 固定。もう一度 ⇧ を押すまで大文字のまま。
+        case locked
+    }
+
+    private var shiftState: ShiftState = .off
+
+    /// 直前に ⇧ を押した時刻。続けて押されたか（＝固定にするか）を見る。
+    private var lastShiftTap: Date?
+
     /// 変換の状態機械。**生成が重いので最初のかな入力まで作らない**（SPEC 10）。
     private var conversion: ConversionController?
 
@@ -60,6 +77,17 @@ final class KeyboardViewController: UIInputViewController {
             return isLandscape ? .padLandscape : .padPortrait
         }
         return isLandscape ? .phoneLandscape : .phonePortrait
+    }
+
+    /// 保存された設定に、いま打っているモードを重ねたもの。
+    ///
+    /// **モードと ⇧ は設定として保存しない。**キーボードを開くたびにかなへ戻す。
+    /// 前回英数のまま終わったせいで、次に開いたら英字が出る、というのが一番困る。
+    private func configuration(for deviceClass: DeviceClass) -> KeyboardConfiguration {
+        var configuration = KeyboardSettings.configuration(for: deviceClass)
+        configuration.mode = mode
+        configuration.isShifted = shiftState != .off
+        return configuration
     }
 
     // MARK: - ライフサイクル
@@ -143,7 +171,7 @@ final class KeyboardViewController: UIInputViewController {
         // レイアウトが決まるまでは描かない。寸法は viewWillLayoutSubviews で入れる。
         let controller = UIHostingController(
             rootView: makeRootView(geometry: nil,
-                                   configuration: KeyboardSettings.configuration(for: currentDeviceClass))
+                                   configuration: configuration(for: currentDeviceClass))
         )
         controller.view.backgroundColor = .clear
 
@@ -172,7 +200,7 @@ final class KeyboardViewController: UIInputViewController {
         let input = HeightInput(
             width: width,
             safeArea: SafeAreaInsets(view.safeAreaInsets),
-            configuration: KeyboardSettings.configuration(for: deviceClass),
+            configuration: configuration(for: deviceClass),
             deviceClass: deviceClass
         )
         guard input != lastHeightInput else { return }
@@ -214,6 +242,29 @@ final class KeyboardViewController: UIInputViewController {
 
     /// キーボードからの出力。まず変換に通し、出てきた効果を proxy に落とす。
     private func handle(_ output: KeyOutput) {
+        // モードと ⇧ は**変換に通さない**。通すと `.passthrough` で戻ってくるだけで、
+        // その間に未確定を確定させる機会を逃す。
+        switch output {
+        case KeyboardConfiguration.latinModeOutput:
+            switchMode(to: .latin)
+            return
+        case KeyboardConfiguration.kanaModeOutput:
+            switchMode(to: .kana)
+            return
+        case KeyboardConfiguration.shiftOutput:
+            toggleShift()
+            return
+        default:
+            break
+        }
+
+        // 英数は変換に通さない。ローマ字を仮名漢字変換にかけても意味がない。
+        if mode == .latin {
+            apply(output)
+            consumeShift(after: output)
+            return
+        }
+
         // 変換を切れるようにしてあるのは保険。Mac を返した後で変換が重い・
         // 感触が悪いと分かっても、ここで切れば素のかな入力に戻せる。
         // **`ensureConversion()` を通さない。**辞書を読み込ませないことが目的なので。
@@ -284,6 +335,53 @@ final class KeyboardViewController: UIInputViewController {
         refreshRootView()
     }
 
+    // MARK: - かな／英数
+
+    /// モードを切り替える。
+    ///
+    /// **切り替える前に未確定を確定させる。**残したまま配列を入れ替えると、
+    /// 未確定の読みがどのキーにも紐付かないまま画面に残る。
+    private func switchMode(to newMode: InputMode) {
+        guard mode != newMode else { return }
+        if let conversion, conversion.session.isComposing {
+            commitCandidate(at: conversion.session.selection)
+        }
+        mode = newMode
+        // モードをまたいで ⇧ を持ち越さない。
+        shiftState = .off
+        lastShiftTap = nil
+        reloadSettings()
+    }
+
+    /// ⇧。1回で次の1文字だけ、続けて2回で固定（SPEC 2.6）。
+    ///
+    /// 固定を別キーにする余地が無いので、間隔で見分ける。
+    private func toggleShift() {
+        let now = Date()
+        let isRepeatTap = lastShiftTap.map {
+            now.timeIntervalSince($0) < SplitKanaTuning.shiftLockInterval
+        } ?? false
+        lastShiftTap = now
+
+        switch shiftState {
+        case .off:
+            shiftState = .oneShot
+        case .oneShot:
+            // 続けて押したなら固定。間を空けて押したなら「やっぱりやめる」。
+            shiftState = isRepeatTap ? .locked : .off
+        case .locked:
+            shiftState = .off
+        }
+        reloadSettings()
+    }
+
+    /// 大文字を1文字打ったら ⇧ を落とす。固定中は落とさない。
+    private func consumeShift(after output: KeyOutput) {
+        guard shiftState == .oneShot, case .insert = output else { return }
+        shiftState = .off
+        reloadSettings()
+    }
+
     /// 変換に関係ない出力を proxy に流す。
     private func apply(_ output: KeyOutput) {
         let proxy = textDocumentProxy
@@ -334,7 +432,7 @@ final class KeyboardViewController: UIInputViewController {
         guard let geometry = hosting?.rootView.geometry else { return }
         hosting?.rootView = makeRootView(
             geometry: geometry,
-            configuration: KeyboardSettings.configuration(for: currentDeviceClass)
+            configuration: configuration(for: currentDeviceClass)
         )
     }
 }

@@ -30,6 +30,10 @@ public enum SplitKanaTuning {
     /// 連続削除の間隔。
     public static let repeatInterval: TimeInterval = 0.07
 
+    /// ⇧ を続けて押したときに「固定」と見なす間隔。
+    /// 長すぎると、1文字だけ大文字にしたつもりが固定になってしまう。
+    public static let shiftLockInterval: TimeInterval = 0.35
+
     /// 空白キーの左フリックで入れる文字。
     /// 日本語の文章では全角のほうを使うことが多い。
     public static let fullWidthSpace = "\u{3000}"
