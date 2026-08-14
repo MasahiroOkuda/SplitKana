@@ -204,8 +204,12 @@ public extension KeyboardGeometry {
         // まず分割を試す。
         if deviceClass.attemptsSplit {
             // 左パネル 2列（ギャップ1）＋ 右パネル n列（ギャップ n-1）
-            let unitWidth = base.keyWidth * CGFloat(2 + rightColumnCount)
-                + base.gapX * CGFloat(rightColumnCount)
+            // 英数は左右とも5列。かなは左2列＋右 n 列。
+            let totalColumns = configuration.mode == .latin
+                ? LatinKeyTable.columns * 2
+                : 2 + rightColumnCount
+            let unitWidth = base.keyWidth * CGFloat(totalColumns)
+                + base.gapX * CGFloat(totalColumns - 2)
             let widthScale = unitWidth > 0
                 ? (usableWidth - SplitKanaTuning.minimumCenterGap) / unitWidth
                 : requestedScale
@@ -272,8 +276,12 @@ public extension KeyboardGeometry {
         let keyboardHeight = panelHeight + base.topPadding + bottomInset + safeArea.bottom
         let panelY = containerSize.height - keyboardHeight + base.topPadding
 
-        let leftWidth = kw * 2 + gx
-        let rightWidth = kw * CGFloat(rightColumnCount) + gx * CGFloat(rightColumnCount - 1)
+        let isLatin = configuration.mode == .latin
+        let leftColumnCount = isLatin ? LatinKeyTable.columns : 2
+        let rightCount = isLatin ? LatinKeyTable.columns : rightColumnCount
+
+        let leftWidth = kw * CGFloat(leftColumnCount) + gx * CGFloat(leftColumnCount - 1)
+        let rightWidth = kw * CGFloat(rightCount) + gx * CGFloat(rightCount - 1)
 
         let leftX = safeArea.leading + base.sideInset
         let rightX = containerSize.width - safeArea.trailing - base.sideInset - rightWidth
@@ -287,7 +295,11 @@ public extension KeyboardGeometry {
             id: "panel.left",
             side: .left,
             frame: CGRect(x: leftX, y: panelY, width: leftWidth, height: panelHeight),
-            keys: place(columns: leftColumns,
+            keys: isLatin
+                ? placeRows(LatinKeyTable.leftRows(shifted: configuration.isShifted),
+                            panelID: "left", kw: kw, kh: kh, gx: gx, gy: gy,
+                            popupSide: .trailing)
+                : place(columns: leftColumns,
                         panelID: "left",
                         kw: kw, kh: kh, gx: gx, gy: gy,
                         panelWidth: leftWidth,
@@ -303,7 +315,11 @@ public extension KeyboardGeometry {
             id: "panel.right",
             side: .right,
             frame: CGRect(x: rightX, y: panelY, width: rightWidth, height: panelHeight),
-            keys: place(columns: rightColumns,
+            keys: isLatin
+                ? placeRows(LatinKeyTable.rightRows(shifted: configuration.isShifted),
+                            panelID: "right", kw: kw, kh: kh, gx: gx, gy: gy,
+                            popupSide: .leading)
+                : place(columns: rightColumns,
                         panelID: "right",
                         kw: kw, kh: kh, gx: gx, gy: gy,
                         panelWidth: rightWidth,
@@ -416,6 +432,45 @@ public extension KeyboardGeometry {
                     popupSide: popupSide(rect)
                 ))
                 row += span
+            }
+        }
+
+        return placed
+    }
+
+    /// 英数モードの配置。**行で組む。**
+    ///
+    /// かなは列で組むが、こちらは行ごとにキー数が違い、半キーずれる。
+    /// 出来上がりは同じ `PlacedKey` の配列なので、当たり判定も描画もそのまま使える。
+    private static func placeRows(
+        _ rows: [LatinKeyTable.Row],
+        panelID: String,
+        kw: CGFloat,
+        kh: CGFloat,
+        gx: CGFloat,
+        gy: CGFloat,
+        popupSide: PopupSide
+    ) -> [PlacedKey] {
+
+        var placed: [PlacedKey] = []
+
+        for (rowIndex, row) in rows.enumerated() {
+            let y = CGFloat(rowIndex) * (kh + gy)
+            var column = row.indent
+
+            for (keyIndex, key) in row.keys.enumerated() {
+                let span = CGFloat(max(1, key.columnSpan))
+                let x = column * (kw + gx)
+                let width = kw * span + gx * (span - 1)
+
+                placed.append(PlacedKey(
+                    id: "\(panelID).row\(rowIndex).\(keyIndex)",
+                    key: key,
+                    rect: CGRect(x: x, y: y, width: width, height: kh),
+                    isDuplicate: false,
+                    popupSide: popupSide
+                ))
+                column += span
             }
         }
 

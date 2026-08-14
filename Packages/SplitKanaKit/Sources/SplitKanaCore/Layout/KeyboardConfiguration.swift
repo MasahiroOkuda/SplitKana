@@ -3,6 +3,15 @@ import Foundation
 import CoreGraphics
 #endif
 
+/// かなを打つか英数を打つか。
+///
+/// かなは**列**で組み、英数は**行**で組む。行ごとにキー数が違って半キーずれるので、
+/// 同じ組み方では表現できない（SPEC 2.6）。
+public enum InputMode: String, Equatable, Sendable {
+    case kana
+    case latin
+}
+
 /// ホストから受け取る設定（SPEC 2.2 / 3.1）。
 public struct KeyboardConfiguration: Equatable, Sendable {
 
@@ -38,6 +47,12 @@ public struct KeyboardConfiguration: Equatable, Sendable {
     /// 下端側は `bottomInset` が受け持つので、こちらは上だけ。
     public var topPadding: CGFloat?
 
+    /// かなを打つか、英数を打つか。
+    public var mode: InputMode
+
+    /// 英数モードで次の1文字を大文字にするか。
+    public var isShifted: Bool
+
     /// 画面端とパネルの間。nil なら端末別の既定値。
     ///
     /// 左右パネルの左右位置を決める。握り位置に合わせて内側／外側に寄せる。
@@ -50,7 +65,9 @@ public struct KeyboardConfiguration: Equatable, Sendable {
         bottomInset: CGFloat? = KeyboardConfiguration.defaultBottomInset,
         flickThreshold: CGFloat = SplitKanaTuning.flickThreshold,
         topPadding: CGFloat? = nil,
-        sideInset: CGFloat? = nil
+        sideInset: CGFloat? = nil,
+        mode: InputMode = .kana,
+        isShifted: Bool = false
     ) {
         self.functionColumn = functionColumn
         self.showsDuplicateColumn = showsDuplicateColumn
@@ -59,6 +76,8 @@ public struct KeyboardConfiguration: Equatable, Sendable {
         self.flickThreshold = flickThreshold
         self.topPadding = topPadding
         self.sideInset = sideInset
+        self.mode = mode
+        self.isShifted = isShifted
     }
 
     /// 常に4キーに揃えた機能列。
@@ -77,19 +96,23 @@ public struct KeyboardConfiguration: Equatable, Sendable {
 
 public extension KeyboardConfiguration {
 
-    /// キーボード拡張向けの機能列（SPEC 2.2）。
-    ///
-    /// 地球キーは拡張では必須。カーソルキーは両手が塞がった状態で動かせるので、
-    /// 確認用ホストでもこの構成を使う（🌐 と英数はホストでは表示のみ）。
     /// 設定パネルの開閉。拡張は `UIAlertController` を出せないので、
     /// 設定はキーボードの中にパネルとして持つ（SPEC 4）。
     static let settingsOutput = KeyOutput.custom("settings")
 
+    /// 英数モードへ切り替える。
+    static let latinModeOutput = KeyOutput.custom("latin")
+    /// かなモードへ戻す。
+    static let kanaModeOutput = KeyOutput.custom("kana")
+    /// ⇧。次の1文字を大文字にする。続けて押すと固定。
+    static let shiftOutput = KeyOutput.custom("shift")
+
+    /// キーボード拡張向けの機能列（SPEC 2.2）。
+    ///
+    /// 地球キーは拡張では必須。席は4つしか無いので、カーソルは1キーに集約してある。
     static var keyboardExtension: KeyboardConfiguration {
         KeyboardConfiguration(functionColumn: [
             FunctionKey(title: "🌐", output: .nextInputMode),
-            // 英数は未実装で押しても何も起きなかったので、ここを ⚙ に充てた。
-            // ◀▶ は両手が塞がったままカーソルを動かせる利点があるので残す（SPEC 2.2）。
             FunctionKey(title: "⚙", output: KeyboardConfiguration.settingsOutput),
             // **1つのキーで左右を兼ねる。**左右に振ってカーソルを動かす。
             // 席が4つしか無いので、◀▶ で2つ使うと英数のぶんが残らない。
@@ -99,8 +122,7 @@ public extension KeyboardConfiguration {
                 output: .custom("noop"),
                 flickOutputs: [.left: .cursor(-1), .right: .cursor(1)]
             ),
-            // 英数モード用に空けてある。実装が入るまでは何もしない。
-            FunctionKey(title: "", output: .custom("noop"))
+            FunctionKey(title: "英数", output: KeyboardConfiguration.latinModeOutput)
         ])
     }
 

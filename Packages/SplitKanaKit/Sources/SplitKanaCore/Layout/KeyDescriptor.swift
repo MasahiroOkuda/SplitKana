@@ -31,6 +31,10 @@ public enum KeyKind: Equatable, Sendable {
     case space
     case newline
     case function(FunctionKey)
+    /// 英数モードの1文字。大文字・小文字は生成時に決まっている。
+    case latin(String)
+    /// 英数モードの ⇧。押すと次の1文字が大文字になる。
+    case shift
 
     /// キーの見た目に出す文字。
     public var label: String {
@@ -41,6 +45,8 @@ public enum KeyKind: Equatable, Sendable {
         case .space: return "空白"
         case .newline: return "改行"
         case .function(let key): return key.title
+        case .latin(let text): return text
+        case .shift: return "⇧"
         }
     }
 
@@ -53,6 +59,8 @@ public enum KeyKind: Equatable, Sendable {
         case .space: return .space
         case .newline: return .newline
         case .function(let key): return key.output
+        case .latin(let text): return .insert(text)
+        case .shift: return KeyboardConfiguration.shiftOutput
         }
     }
 
@@ -84,10 +92,13 @@ public struct KeyDescriptor: Equatable, Sendable {
     public let kind: KeyKind
     /// 縦に占める行数。改行キーだけ 2（SPEC 2.1）。
     public let rowSpan: Int
+    /// 横に占める列数。英数モードの空白・改行だけ 2 以上。
+    public let columnSpan: Int
 
-    public init(_ kind: KeyKind, rowSpan: Int = 1) {
+    public init(_ kind: KeyKind, rowSpan: Int = 1, columnSpan: Int = 1) {
         self.kind = kind
         self.rowSpan = rowSpan
+        self.columnSpan = columnSpan
     }
 }
 

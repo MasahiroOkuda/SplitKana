@@ -23,9 +23,9 @@ struct KeyView: View {
     private var fill: Color {
         if isPressed { return palette.pressedFill }
         switch placed.key.kind {
-        case .kana, .dakuten:
+        case .kana, .dakuten, .latin:
             return placed.isDuplicate ? palette.duplicateFill : palette.kanaFill
-        case .backspace, .space, .newline, .function:
+        case .backspace, .space, .newline, .function, .shift:
             return palette.functionFill
         }
     }
@@ -33,8 +33,8 @@ struct KeyView: View {
     private var stroke: Color {
         if placed.isDuplicate { return palette.duplicateStroke }
         switch placed.key.kind {
-        case .kana, .dakuten: return palette.kanaStroke
-        case .backspace, .space, .newline, .function: return palette.functionStroke
+        case .kana, .dakuten, .latin: return palette.kanaStroke
+        case .backspace, .space, .newline, .function, .shift: return palette.functionStroke
         }
     }
 
