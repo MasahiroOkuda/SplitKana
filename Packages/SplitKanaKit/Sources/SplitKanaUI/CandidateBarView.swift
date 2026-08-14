@@ -82,22 +82,29 @@ public struct CandidateBarView: View {
 
     /// 下段：候補を左から順に。**左端が左パネルにいちばん近い。**
     ///
-    /// 幅に入りきらない分は切る。スクロールもさせない。
-    /// 遠い候補は指が届かないので、キーで送るのが本来の使い方（SPEC 5.2）。
+    /// 横にスライドできる。幅に入りきらない候補も指で送れば届く。
+    /// キーで送っているときは、選択中が画面外へ出ないよう追従させる。
     private var candidateRow: some View {
-        HStack(spacing: 4) {
-            ForEach(Array(visible.enumerated()), id: \.offset) { index, text in
-                candidate(text, at: index)
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(Array(visible.enumerated()), id: \.offset) { index, text in
+                        candidate(text, at: index)
+                            .id(index)
+                    }
+                }
+                .padding(.trailing, Self.horizontalPadding)
             }
-            Spacer(minLength: 0)
+            // 幅を明示しないと ScrollView が中身なりに広がり、帯からはみ出す。
+            .frame(width: Self.contentWidth(in: region), height: Self.rowHeight)
+            // 空白キーで送ったとき選択中が見えないと、どこにいるのか分からなくなる。
+            .onAppear { proxy.scrollTo(session.selection, anchor: .center) }
+            .onChange(of: session.selection) { _, selection in
+                withAnimation(.easeOut(duration: 0.12)) {
+                    proxy.scrollTo(selection, anchor: .center)
+                }
+            }
         }
-        // **幅を明示しないと `.clipped()` が効かない。**
-        // 制約が無ければ行の幅は中身なりに広がり、その全体を「切って」も何も切れない。
-        .frame(width: Self.contentWidth(in: region), height: Self.rowHeight, alignment: .leading)
-        .clipped()
-        // `.clipped()` は描画しか切らない。当たり判定も帯の中に閉じ込める。
-        // これが無いと、はみ出した候補を右パネルの上で押せてしまう。
-        .contentShape(Rectangle())
     }
 
     /// 帯の内側で使える幅。左右の余白ぶんを引く。
@@ -109,12 +116,14 @@ public struct CandidateBarView: View {
 
     /// 並べる候補。**多すぎても潰さない。**
     ///
-    /// 潰すと1文字幅まで縮んで全部読めなくなる。入る数だけ出して残りは切る。
+    /// 潰すと1文字幅まで縮んで全部読めなくなる。固有幅のまま並べ、
+    /// はみ出したぶんはスクロールで届かせる。
     private var visible: [String] {
         Array(session.displayCandidates.prefix(Self.maximumShown))
     }
 
-    private static let maximumShown = 12
+    /// 上限。変換器は10件前後しか返さないが、際限なく並べて重くしない。
+    private static let maximumShown = 30
 
     private func candidate(_ text: String, at index: Int) -> some View {
         let isSelected = index == session.selection
