@@ -123,9 +123,12 @@ final class ConversionControllerTests: XCTestCase {
         XCTAssertEqual(c.handle(.space), [.passthrough(.space)])
     }
 
-    func testCandidateWhenNotComposingDoesNothing() {
+    /// 空白キーの左フリックは `.candidate(-1)`。変換中でなければ空白として通す。
+    /// いちばん押されるキーで無音の取りこぼしが起きるほうが、
+    /// 意図しない空白が1つ入るより体感が悪い（SPEC 0 の最優先＝入力が止まらないこと）。
+    func testCandidateWhenNotComposingTypesASpace() {
         var c = controller()
-        XCTAssertEqual(c.handle(.candidate(-1)), [])
+        XCTAssertEqual(c.handle(.candidate(-1)), [.passthrough(.space)])
     }
 
     func testNewlineCommitsTheSelectedCandidate() {

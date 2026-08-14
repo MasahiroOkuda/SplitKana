@@ -32,7 +32,9 @@ public struct ConversionController {
             return [moveCandidate(by: 1)]
 
         case .candidate(let step):
-            guard session.isComposing else { return [] }
+            // 変換中でなければ、ただの空白として通す。
+            // ここで握り潰すと、少し左に流れた空白タップが無音で消える。
+            guard session.isComposing else { return [.passthrough(.space)] }
             return [moveCandidate(by: step)]
 
         case .newline where session.isComposing:

@@ -22,6 +22,7 @@ struct KeyboardSettingsPanel: View {
 
     @State private var values: [KeyboardSettings.Field: Double] = [:]
     @State private var showsDuplicateColumn = true
+    @State private var conversionEnabled = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -33,6 +34,12 @@ struct KeyboardSettingsPanel: View {
 
             HStack(spacing: 10) {
                 Toggle("複製列", isOn: duplicateBinding)
+                    .font(.system(size: 12))
+                    .toggleStyle(.switch)
+                    .fixedSize()
+                // 変換が重い・感触が合わないときの逃げ道。
+                // Mac を返した後は作り直せないので、ここで切れるようにしておく。
+                Toggle("変換", isOn: conversionBinding)
                     .font(.system(size: 12))
                     .toggleStyle(.switch)
                     .fixedSize()
@@ -114,11 +121,23 @@ struct KeyboardSettingsPanel: View {
         )
     }
 
+    private var conversionBinding: Binding<Bool> {
+        Binding(
+            get: { conversionEnabled },
+            set: { newValue in
+                conversionEnabled = newValue
+                KeyboardSettings.saveConversionEnabled(newValue, for: deviceClass)
+                onChange()
+            }
+        )
+    }
+
     private func load() {
         for field in KeyboardSettings.Field.allCases {
             values[field] = KeyboardSettings.current(field, for: deviceClass)
         }
         showsDuplicateColumn = KeyboardSettings.duplicateColumn(deviceClass)
+        conversionEnabled = KeyboardSettings.conversionEnabled(deviceClass)
     }
 
     private func reset() {
