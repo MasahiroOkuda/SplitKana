@@ -292,9 +292,12 @@ final class ConversionControllerTests: XCTestCase {
     /// 空白キーの左フリックは `.candidate(-1)`。変換中でなければ空白として通す。
     /// いちばん押されるキーで無音の取りこぼしが起きるほうが、
     /// 意図しない空白が1つ入るより体感が悪い（SPEC 0 の最優先＝入力が止まらないこと）。
-    func testCandidateWhenNotComposingTypesASpace() {
+    /// 空白キーの左フリックは、変換中でなければ全角スペース。
+    /// 握り潰すと、いちばん多く打つキーで打鍵が無音で消える。
+    func testCandidateWhenNotComposingTypesAFullWidthSpace() {
         var c = controller()
-        XCTAssertEqual(c.handle(.candidate(-1)), [.passthrough(.space)])
+        XCTAssertEqual(c.handle(.candidate(-1)),
+                       [.passthrough(.insert("\u{3000}"))])
     }
 
     func testNewlineCommitsTheSelectedCandidate() {

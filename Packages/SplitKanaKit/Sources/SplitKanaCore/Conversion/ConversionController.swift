@@ -32,9 +32,12 @@ public struct ConversionController {
             return [moveCandidate(by: 1)]
 
         case .candidate(let step):
-            // 変換中でなければ、ただの空白として通す。
+            // 空白キーの左フリック。変換中は候補を戻すが、
+            // 変換していないときは**全角スペース**を入れる。
             // ここで握り潰すと、少し左に流れた空白タップが無音で消える。
-            guard session.isComposing else { return [.passthrough(.space)] }
+            guard session.isComposing else {
+                return [.passthrough(.insert(SplitKanaTuning.fullWidthSpace))]
+            }
             return [moveCandidate(by: step)]
 
         case .newline where session.isComposing:
