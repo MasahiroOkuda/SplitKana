@@ -80,12 +80,16 @@ struct KeyboardRootView: View {
     }
 
     /// 候補バーの置き場所。分割時は中央の空きの上寄り、統合時はキーボード上端。
+    ///
+    /// 高さはバー側が決める。読み・現在地・前後の予告を積むので、
+    /// ここで決め打ちにするとバーの中身と食い違う。
     private func candidateRegion(for geometry: KeyboardGeometry) -> CGRect {
         let region = geometry.isSplit
             ? geometry.freeRegion
             : CGRect(origin: .zero, size: geometry.containerSize)
         return CGRect(x: region.minX + 6, y: region.minY + 6,
-                      width: max(0, region.width - 12), height: 40)
+                      width: max(0, region.width - 12),
+                      height: CandidateBarView.preferredHeight)
     }
 }
 
