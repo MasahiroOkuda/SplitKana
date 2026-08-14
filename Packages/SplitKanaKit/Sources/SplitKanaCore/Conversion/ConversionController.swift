@@ -79,6 +79,19 @@ public struct ConversionController {
         return .markedText(session.selected ?? session.reading)
     }
 
+    /// 候補を直接選んで確定する。候補欄のタップ用。
+    ///
+    /// **キーで確定したときと同じ経路（`commit()`）を通る。**
+    /// 確定の扱いが二通りあると、学習や後処理を足したときに片方だけ漏れる。
+    /// 範囲外の指定は無視する（表示と状態がずれた瞬間にタップが来ても壊れない）。
+    public mutating func commitCandidate(at index: Int) -> [ConversionEffect] {
+        guard session.isComposing, session.displayCandidates.indices.contains(index) else {
+            return []
+        }
+        session.selection = index
+        return [commit()]
+    }
+
     /// 選択中の候補で確定し、セッションを空に戻す。
     private mutating func commit() -> ConversionEffect {
         let text = session.selected ?? session.reading
