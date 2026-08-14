@@ -4,6 +4,23 @@ options:
   deploymentTarget:
     iOS: "17.0"
 
+# 署名の切り替えはここだけ直せば済む。
+#
+# - DEVELOPMENT_TEAM
+#     Xcode の Settings → Accounts に出ているチームID。
+#     Xcode の「Signing & Capabilities」で選んだものと同じ値にすること。
+#     異なると `xcodegen generate` のたびに選択が上書きされる。
+#
+# - SPLITKANA_BUNDLE_PREFIX
+#     Bundle ID の頭。**チームを変えるときは必ず一緒に変える。**
+#     明示的な App ID はアカウントをまたいで一意なので、
+#     前のチームが登録済みの Bundle ID は新しいチームでは登録できない。
+#     変えると iPad は別のアプリとして扱う（学習データは引き継がれない）。
+settings:
+  base:
+    DEVELOPMENT_TEAM: PPB74JD3JG
+    SPLITKANA_BUNDLE_PREFIX: com.splitkana
+
 packages:
   SplitKanaKit:
     path: Packages/SplitKanaKit
@@ -40,13 +57,10 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.splitkana.host
+        PRODUCT_BUNDLE_IDENTIFIER: $(SPLITKANA_BUNDLE_PREFIX).host
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
-        # Xcode の「Signing & Capabilities」で選択したチームと同じ値にすること。
-        # 異なるとビルドのたびに上書きされる。
-        DEVELOPMENT_TEAM: PPB74JD3JG
 
   # キーボード拡張（SPEC 7 フェーズ2）。
   # Bundle ID は必ず親アプリの Bundle ID + サフィックスにする。
@@ -79,11 +93,10 @@ targets:
             RequestsOpenAccess: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.splitkana.host.keyboard
+        PRODUCT_BUNDLE_IDENTIFIER: $(SPLITKANA_BUNDLE_PREFIX).host.keyboard
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: PPB74JD3JG
 
 # スキームは共有保存しておく。
 # 定義しないと Xcode が各ターゲットぶんを勝手に作り、xcodegen generate のたびに
