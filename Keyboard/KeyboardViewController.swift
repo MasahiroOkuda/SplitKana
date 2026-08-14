@@ -263,7 +263,9 @@ final class KeyboardViewController: UIInputViewController {
             proxy.adjustTextPosition(byCharacterOffset: offset)
 
         case .candidate:
-            break   // 変換中しか意味を持たない
+            // 変換を切っているときはここに来る。空白キーの左フリックなので空白を入れる。
+            // 握り潰すと、いちばん多く打つキーで打鍵が無音で消える。
+            proxy.insertText(" ")
 
         case .nextInputMode:
             // 地球キー。これが無いと他のキーボードに戻れない（SPEC 2.2）。
