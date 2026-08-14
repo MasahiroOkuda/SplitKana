@@ -111,7 +111,7 @@ public struct SplitKanaKeyboardView: View {
                    $0.hit.panelID == panel.id && $0.hit.key.kind.flickSet != nil
                }),
                let flickSet = finger.hit.key.kind.flickSet,
-               let placement = geometry.popupPlacement(for: finger.hit, itemCount: flickSet.assigned.count) {
+               let placement = geometry.popupPlacement(for: finger.hit) {
                 FlickPopupView(
                     flickSet: flickSet,
                     selected: finger.direction,

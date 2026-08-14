@@ -340,7 +340,7 @@ final class KeyboardGeometryTests: XCTestCase {
             for panel in g.panels {
                 for key in panel.keys {
                     guard let flickSet = key.key.kind.flickSet else { continue }
-                    let placement = g.popupPlacement(for: key, itemCount: flickSet.assigned.count)
+                    let placement = g.popupPlacement(for: key)
                     XCTAssertNotNil(placement, "\(size) の \(key.id) でポップアップが置けない")
                     guard let rect = placement?.rect else { continue }
                     for other in g.panels {
@@ -357,7 +357,7 @@ final class KeyboardGeometryTests: XCTestCase {
         for panel in g.panels {
             let xs = panel.keys.compactMap { key -> CGFloat? in
                 guard let flickSet = key.key.kind.flickSet else { return nil }
-                return g.popupPlacement(for: key, itemCount: flickSet.assigned.count)?.rect.minX
+                return g.popupPlacement(for: key)?.rect.minX
             }
             XCTAssertGreaterThan(xs.count, 1)
             // どのキーを押しても横位置は動かない。
@@ -371,7 +371,7 @@ final class KeyboardGeometryTests: XCTestCase {
             for panel in g.panels {
                 for key in panel.keys {
                     guard let flickSet = key.key.kind.flickSet,
-                          let placement = g.popupPlacement(for: key, itemCount: flickSet.assigned.count)
+                          let placement = g.popupPlacement(for: key)
                     else { continue }
                     let rect = placement.rect
                     XCTAssertGreaterThanOrEqual(rect.minX, -0.5, "\(size) で左にはみ出し")
@@ -387,18 +387,43 @@ final class KeyboardGeometryTests: XCTestCase {
         let g = geometry(CGSize(width: 1180, height: 820), isPad: true)
         let left = g.panels.first { $0.side == .left }!
         let kana = left.keys.filter { $0.key.kind.flickSet != nil }.sorted { $0.rect.minY < $1.rect.minY }
-        let ys = kana.compactMap { g.popupPlacement(for: $0, itemCount: 5)?.rect.minY }
+        let ys = kana.compactMap { g.popupPlacement(for: $0)?.rect.minY }
         XCTAssertEqual(ys.count, kana.count)
         // 上の行ほど上に出る（クランプで潰れない広さがある端末で確認）。
         XCTAssertEqual(ys, ys.sorted())
         XCTAssertGreaterThan(ys.last! - ys.first!, 0)
     }
 
+    /// 十字。3×3の枠を取り、上下左右と中央だけを使う。
+    func testPopupIsASquareCross() {
+        let g = geometry(CGSize(width: 1180, height: 820), isPad: true)
+        let key = g.panels[0].keys.first { $0.key.kind.flickSet != nil }!
+        let placement = g.popupPlacement(for: key)!
+        let cells = CGFloat(PopupPlacement.crossSize)
+        let padding = SplitKanaTuning.popupPadding
+
+        XCTAssertEqual(placement.rect.width,
+                       placement.itemWidth * cells + padding * 2, accuracy: 0.01)
+        XCTAssertEqual(placement.rect.height,
+                       placement.itemHeight * cells + padding * 2, accuracy: 0.01)
+    }
+
+    /// 文字数が違っても枠は変わらない。「わ」も「小゛゜」も同じ十字に収まる。
+    func testPopupSizeDoesNotDependOnTheKey() {
+        let g = geometry(CGSize(width: 1180, height: 820), isPad: true)
+        let sizes = g.panels.flatMap(\.keys)
+            .filter { $0.key.kind.flickSet != nil }
+            .compactMap { g.popupPlacement(for: $0)?.rect.size }
+        XCTAssertGreaterThan(sizes.count, 1)
+        XCTAssertEqual(Set(sizes.map(\.width)).count, 1)
+        XCTAssertEqual(Set(sizes.map(\.height)).count, 1)
+    }
+
     func testPopupIsNilForKeysWithoutFlicks() {
         let g = geometry(CGSize(width: 844, height: 390), isPad: false)
         let right = g.panels.first { $0.side == .right }!
         let backspace = right.keys.first { $0.key.kind == .backspace }!
-        XCTAssertNil(g.popupPlacement(for: backspace, itemCount: 0))
+        XCTAssertNil(g.popupPlacement(for: backspace))
     }
 
     // MARK: -

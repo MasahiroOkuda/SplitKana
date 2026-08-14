@@ -12,7 +12,7 @@ import CoreGraphics
 /// 左パネル                  右パネル
 /// Q  W  E  R  T             Y  U  I  O  P
 ///  A  S  D  F  G             H  J  K  L
-/// ⇧  Z  X  C  V  B             N  M  ,  .  ⌫
+/// ⇧  Z  X  C  V  B          B  N  M  ,  .  ⌫
 /// 🌐 ⚙ かな   ␣              ␣       改行
 /// ```
 ///
@@ -69,15 +69,24 @@ public enum LatinKeyTable {
         [
             Row(letters("yuiop", shifted: shifted)),
             Row(letters("hjkl", shifted: shifted), indent: 0.5),
+            // B は左パネルにもある。左手の人差し指で打つ字だが、
+            // 右手で取りにいく打ち方も多いので、**両側に置く**（かなの あ列 と同じ重複）。
+            // N より左に置くので、N から右の位置はかな側と変わらない。
             // 読点・句点は ⇧ で変わらない。英数モードなので半角のまま。
-            Row(letters("nm", shifted: shifted)
+            Row([duplicateLetter("b", shifted: shifted)]
+                + letters("nm", shifted: shifted)
                 + [KeyDescriptor(.latin(",")), KeyDescriptor(.latin(".")),
-                   KeyDescriptor(.backspace)], indent: 1),
+                   KeyDescriptor(.backspace)]),
             Row([
                 KeyDescriptor(.space, columnSpan: 3),
                 KeyDescriptor(.newline, columnSpan: 3)
             ])
         ]
+    }
+
+    /// 反対側のパネルにも同じものがある1文字。出力は複製元と完全に同一（SPEC 2.1 / 10）。
+    private static func duplicateLetter(_ text: String, shifted: Bool) -> KeyDescriptor {
+        KeyDescriptor(letters(text, shifted: shifted)[0].kind, isDuplicate: true)
     }
 
     private static func letters(_ text: String, shifted: Bool) -> [KeyDescriptor] {

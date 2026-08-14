@@ -49,8 +49,14 @@ public struct PanelGeometry: Identifiable, Sendable {
 }
 
 /// フリックポップアップの置き場所。コンテナ座標。
+///
+/// 中身は3×3の枠。上下左右と中央だけを使い、四隅は空ける。
 public struct PopupPlacement: Equatable, Sendable {
+    /// 十字を収める枠の一辺（マス数）。
+    public static let crossSize = 3
+
     public let rect: CGRect
+    /// 1マスの大きさ。`rect` は余白を含めて `itemWidth * 3` ぶんある。
     public let itemWidth: CGFloat
     public let itemHeight: CGFloat
 }
@@ -105,40 +111,53 @@ public extension KeyboardGeometry {
 
     /// フリックポップアップは**押したキーの隣ではなく、パネルの内側端に固定する**。
     ///
+    /// フリックを持たないキーでは nil。
+    ///
     /// 隣に開くと、右パネルの さ列 のポップアップが か列・あ列を覆ってしまう。
     /// パネルの外（中央の空き）に固定すれば、どのキーを押してもキーは一切隠れない。
     /// 中央の空きに収まるよう1項目の幅を詰めるので、はみ出すこともない。
     ///
     /// 統合レイアウト（iPhone 縦）には中央の空きがないので、そこだけは従来どおりキーの隣に開き、
     /// 画面外へ出ないようにクランプする。
-    func popupPlacement(for key: PlacedKey, itemCount: Int) -> PopupPlacement? {
-        guard let panel = panel(containing: key.id) else { return nil }
-        return popupPlacement(panel: panel, rect: key.rect, side: key.popupSide, itemCount: itemCount)
+    func popupPlacement(for key: PlacedKey) -> PopupPlacement? {
+        guard key.key.kind.flickSet != nil,
+              let panel = panel(containing: key.id) else { return nil }
+        return popupPlacement(panel: panel, rect: key.rect, side: key.popupSide)
     }
 
     /// 当たり判定の結果から直接引く版。押している指ごとにポップアップを出すのに使う。
-    func popupPlacement(for hit: KeyHit, itemCount: Int) -> PopupPlacement? {
-        guard let panel = panels.first(where: { $0.id == hit.panelID }) else { return nil }
-        return popupPlacement(panel: panel, rect: hit.rect, side: hit.popupSide, itemCount: itemCount)
+    func popupPlacement(for hit: KeyHit) -> PopupPlacement? {
+        guard hit.key.kind.flickSet != nil,
+              let panel = panels.first(where: { $0.id == hit.panelID }) else { return nil }
+        return popupPlacement(panel: panel, rect: hit.rect, side: hit.popupSide)
     }
 
-    private func popupPlacement(panel: PanelGeometry, rect: CGRect, side: PopupSide, itemCount: Int) -> PopupPlacement? {
-        guard itemCount > 0 else { return nil }
+    /// ポップアップは**十字**に開く。3×3の枠を取り、上下左右と中央だけを使う（SPEC 2.3）。
+    ///
+    /// 横一列に並べると、指を動かす向きと文字の並ぶ向きが一致しない。
+    /// 「お」は下フリックなのに横に並ぶと右端にある、という具合で、
+    /// 一度読んでから指の向きに翻訳する手間が要る。十字ならその手間がない。
+    private func popupPlacement(panel: PanelGeometry, rect: CGRect, side: PopupSide) -> PopupPlacement? {
 
         let padding = SplitKanaTuning.popupPadding
-        let itemHeight = min(keyWidth, keyHeight) * SplitKanaTuning.popupItemRatio
+        let cells = CGFloat(PopupPlacement.crossSize)
 
         let available = isSplit
             ? centerGap - gapX * 2
             : containerSize.width - gapX * 2
         let itemWidth = min(
             keyWidth * SplitKanaTuning.popupItemRatio,
-            (available - padding * 2) / CGFloat(itemCount)
+            (available - padding * 2) / cells
         )
-        guard itemWidth > 0 else { return nil }
+        // 縦3段ぶんがパネルからはみ出さないところまでは詰める。
+        let itemHeight = min(
+            min(keyWidth, keyHeight) * SplitKanaTuning.popupItemRatio,
+            (panel.frame.height - padding * 2) / cells
+        )
+        guard itemWidth > 0, itemHeight > 0 else { return nil }
 
-        let width = itemWidth * CGFloat(itemCount) + padding * 2
-        let height = itemHeight + padding * 2
+        let width = itemWidth * cells + padding * 2
+        let height = itemHeight * cells + padding * 2
 
         let x: CGFloat
         if isSplit {
@@ -492,7 +511,7 @@ public extension KeyboardGeometry {
                     id: "\(panelID).row\(rowIndex).\(keyIndex)",
                     key: key,
                     rect: CGRect(x: x, y: y, width: width, height: kh),
-                    isDuplicate: false,
+                    isDuplicate: key.isDuplicate,
                     popupSide: popupSide
                 ))
                 column += span
