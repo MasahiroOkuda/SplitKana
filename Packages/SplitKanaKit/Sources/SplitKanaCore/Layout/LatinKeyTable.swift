@@ -54,8 +54,10 @@ public enum LatinKeyTable {
                 KeyDescriptor(.function(FunctionKey(title: "🌐", output: .nextInputMode))),
                 KeyDescriptor(.function(FunctionKey(
                     title: "⚙", output: KeyboardConfiguration.settingsOutput))),
+                // 英字の次はかな。巡回は かな → 数字 → 英字 → かな。
                 KeyDescriptor(.function(FunctionKey(
-                    title: "かな", output: KeyboardConfiguration.kanaModeOutput))),
+                    title: InputMode.latin.next.label,
+                    output: KeyboardConfiguration.nextModeOutput))),
                 KeyDescriptor(.space, columnSpan: 3)
             ])
         ]

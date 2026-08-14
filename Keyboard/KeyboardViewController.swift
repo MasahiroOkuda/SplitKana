@@ -245,11 +245,8 @@ final class KeyboardViewController: UIInputViewController {
         // モードと ⇧ は**変換に通さない**。通すと `.passthrough` で戻ってくるだけで、
         // その間に未確定を確定させる機会を逃す。
         switch output {
-        case KeyboardConfiguration.latinModeOutput:
-            switchMode(to: .latin)
-            return
-        case KeyboardConfiguration.kanaModeOutput:
-            switchMode(to: .kana)
+        case KeyboardConfiguration.nextModeOutput:
+            switchMode(to: mode.next)
             return
         case KeyboardConfiguration.shiftOutput:
             toggleShift()
@@ -258,8 +255,8 @@ final class KeyboardViewController: UIInputViewController {
             break
         }
 
-        // 英数は変換に通さない。ローマ字を仮名漢字変換にかけても意味がない。
-        if mode == .latin {
+        // かな以外は変換に通さない。英字も数字も、仮名漢字変換にかけても意味がない。
+        if mode != .kana {
             apply(output)
             consumeShift(after: output)
             return
