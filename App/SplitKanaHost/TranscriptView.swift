@@ -8,6 +8,8 @@ struct TranscriptView: View {
     let stats: TypingStats
     let notice: String?
     let onClear: () -> Void
+    /// 調整パネルの開閉。パネル自体は `HostRootView` がこの上に積む。
+    @Binding var isShowingSettings: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -50,6 +52,13 @@ struct TranscriptView: View {
                 Button("消す", action: onClear)
                     .font(.footnote)
                     .buttonStyle(.bordered)
+                Button {
+                    isShowingSettings.toggle()
+                } label: {
+                    Text("⚙").font(.footnote)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("設定")
             }
         }
     }

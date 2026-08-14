@@ -30,11 +30,23 @@ struct MultiTouchOverlay: UIViewRepresentable {
     final class TouchRelayView: UIView {
         var onTouch: ((Phase, ObjectIdentifier, CGPoint) -> Void)?
 
+        /// **完全に透明にしてはいけない。**
+        ///
+        /// `backgroundColor = .clear` にすると、このビューにタッチが一切配送されない
+        /// （実機で確認済み。`.contentShape(Rectangle())` を足しても直らない。
+        /// あれは SwiftUI 側のジェスチャにしか効かず、子 UIView への配送は変えられない）。
+        /// UIKit がヒットテストで見るのは `view.alpha` であって背景色ではないはずだが、
+        /// SwiftUI 経由で載せた場合は中身が透明だと素通しになる。
+        ///
+        /// そこで、目には見えないが透明ではない色を敷く。
+        /// `alpha` は UIKit のヒットテストのしきい値 0.01 より上に取る。
+        static let hitTestableTint = UIColor(white: 0, alpha: 0.02)
+
         override init(frame: CGRect) {
             super.init(frame: frame)
             isMultipleTouchEnabled = true
             isUserInteractionEnabled = true
-            backgroundColor = .clear
+            backgroundColor = Self.hitTestableTint
         }
 
         required init?(coder: NSCoder) { fatalError("コードからは生成しない") }

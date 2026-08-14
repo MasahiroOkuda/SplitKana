@@ -2,11 +2,12 @@
 
 分割かなキーボード。仕様は [SPEC.md](SPEC.md)。
 
-**いまはフェーズ1**（SplitKanaKit + 確認用ホストアプリ）。キーボード拡張はまだ無い。
+**いまはフェーズ2まで完了**（SplitKanaKit + 確認用ホストアプリ + キーボード拡張 + 設定パネル）。
+全アプリで使える状態。次はフェーズ4のかな漢字変換を入れるかどうかの判断。
 
 ## 構成
 
-**`Package.swift` が正。**`.xcodeproj` はリポジトリに置かない（Mac で各自が作る）。
+**`Package.swift` と `project.yml` が正。**`.xcodeproj` は `xcodegen` の生成物。
 
 ```
 SplitKana/
@@ -19,10 +20,9 @@ SplitKana/
 │     │  └─ Conversion/       かな漢字変換の抽象（フェーズ4まで空実装）
 │     └─ SplitKanaUI/         SwiftUI。KeyboardView とキーの見た目だけ
 ├─ App/SplitKanaHost/         確認用ホストアプリ（画面に文字が出るだけ）
+├─ Keyboard/                  キーボード拡張（KeyOutput を textDocumentProxy に流すだけ）
 └─ SPEC.md
 ```
-
-`Keyboard/`（拡張ターゲット）はフェーズ2で足す。
 
 ### なぜ Core と UI を分けるか
 
@@ -36,26 +36,63 @@ SplitKana/
 
 ## Mac で動かす
 
-`.xcodeproj` は入っていないので、最初に1回だけ作る。
+`.xcodeproj` は [xcodegen](https://github.com/yonaskolb/XcodeGen) でリポジトリ直下の
+`project.yml` から生成する。**`project.yml` が正で、`.xcodeproj` は生成物。**
+壊れたら作り直せばよいので、そのままコミットしてかまわない。
 
-1. **Xcode → File → New → Project → iOS → App**
-   - Product Name: `SplitKanaHost`
-   - Interface: SwiftUI / Language: Swift
-   - 保存先: このリポジトリ直下（`SplitKana/`）
-   - 「Create Git repository」のチェックは**外す**（もうリポジトリがある）
-2. **File → Add Package Dependencies… → Add Local…** で `Packages/SplitKanaKit` を選ぶ
-   - `SplitKanaCore` と `SplitKanaUI` の**両方**を `SplitKanaHost` ターゲットに追加する
-3. Xcode が作ったテンプレートの `ContentView.swift` と `SplitKanaHostApp.swift` を削除（Move to Trash）
-4. `App/SplitKanaHost/` の4ファイルをドラッグして追加
-   - `SplitKanaHostApp.swift` / `HostRootView.swift` / `TranscriptView.swift` / `TypingStats.swift`
-   - **「Copy items if needed」はオフ**、Target は `SplitKanaHost` にチェック
-5. ターゲット設定
-   - Minimum Deployments: **iOS 17.0**
-   - iPhone Orientation: Landscape Left / Landscape Right（Portrait も付けてよい）
-6. iPhone シミュレータか実機で実行し、**横向きにする**
+```bash
+brew install xcodegen   # 初回のみ
+xcodegen generate       # SplitKana.xcodeproj を生成／更新
+```
 
-生成された `.xcodeproj` は `.gitignore` に入れず、そのままコミットしてかまわない。
-壊れたらこの手順で作り直せばよい、という位置づけにしてある。
+`project.yml` には `SplitKanaHost` ターゲット（iOS 17.0、Landscape 中心）と、
+ローカルパッケージ `Packages/SplitKanaKit`（`SplitKanaCore` / `SplitKanaUI`）への依存が
+定義してある。ソースを追加・削除したときは `xcodegen generate` をやり直すだけでよく、
+Xcode 上でファイルをドラッグする操作は不要。
+
+シミュレータビルドの確認:
+
+```bash
+xcodebuild -project SplitKana.xcodeproj -scheme SplitKanaHost \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.3.1' build
+```
+
+実機での動作確認は `SplitKana.xcodeproj` を Xcode で開いてシミュレータ／実機を選び実行する
+（**横向きにする**）か、CLI からシミュレータを起動する:
+
+> **⌘R で「Choose an app to run」が出たら**、スキームが `SplitKanaKeyboard` になっている。
+> 拡張は単体で起動できないので、ツールバーのスキーム選択で **`SplitKanaHost`** を選ぶ。
+> 拡張も一緒にビルドされて同梱される。
+> `SplitKanaCore` / `SplitKanaUI` / `SplitKanaKeyboard` のスキームは Xcode が勝手に作るもので、
+> 選んでも起動できない。気になるなら Product → Scheme → Manage Schemes… の
+> 「Autocreate schemes」を切る。
+
+```bash
+xcrun simctl boot "iPhone 16 Pro"
+open -a Simulator
+xcrun simctl install booted /path/to/SplitKanaHost.app   # xcodebuild が吐いた .app
+xcrun simctl launch booted com.splitkana.host
+```
+
+> Xcode 26 / Swift 6.2 では `import Foundation` だけでは `CGRect` 等が暗黙に
+> 使えなくなっている。`SplitKanaCore` 側は `#if canImport(CoreGraphics) import CoreGraphics #endif`
+> を添えて対応してあるので、Windows/Linux（CoreGraphics が無い環境）には影響しない。
+
+## キーボードを有効にする
+
+⌘R でアプリを入れると拡張も同梱される。そのあと端末側で1回だけ：
+
+**設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加 → 「分割かな」**
+
+文字入力中に 🌐 を長押しして切り替える。
+
+- **🌐 は必須**。これが無いと他のキーボードに戻れなくなる（SPEC 2.2）
+- フルアクセスは要求していない（`RequestsOpenAccess = false`）。
+  そのぶん触覚フィードバックは使えない（SPEC 4）
+- パスワード欄では純正キーボードに戻る。音声入力も使えない。いずれも仕様
+
+> **署名は1年で切れる。**切れるとキーボードが使えなくなり、
+> 入れ直すのに Mac が要る。無料の Apple ID だと7日で切れる。
 
 ## Windows / Linux でテストを走らせる
 
@@ -111,6 +148,28 @@ SPEC 11 の未決事項（`scale`、`bottomInset`、フリックのしきい値�
 そのあと SPEC.md 11章の未決事項を埋める：`scale`、`bottomInset`、
 右パネル3列/4列、フリック判定のしきい値。
 
+**これらは全部、実機の ⚙ キーで調整できる。**コードを直す必要はない。
+機能列の ⚙（上から2番目）を押すと設定パネルが開く。
+
+| 調整できるもの | 範囲 |
+|---|---|
+| 大きさ（倍率） | 0.60〜1.45 |
+| 上の余白（キーの大きさを変えずに全体の高さを変える） | 0〜80pt |
+| 下の浮き | 0〜80pt |
+| 左右位置（左右パネルを内外に寄せる） | 0〜120pt |
+| フリック判定のしきい値 | 6〜40pt |
+| 右パネル 3列 / 4列 | トグル |
+
+**値は端末クラスごとに別々に保存される**（iPhone 横 / iPhone 縦 / iPad 横 / iPad 縦）。
+iPad 横で詰めても iPhone 縦には影響しない。保存先は拡張自身の `UserDefaults`
+（App Group はフルアクセスが要るので使わない。SPEC 4）。
+
+分割時はパネルが中央の空きに開くので、調整しながら打てる。
+iPhone 縦は中央の空きが無いのでキーボードに重ねて開き、その間キーは反応しない。
+
+既定値そのものを変えたいときは `KeyboardConfiguration` の `defaultScale` /
+`defaultBottomInset` と `DeviceClass.baseMetrics` に書き戻す。現在の既定は **0.80 / 0pt**。
+
 ## いま実装してあるもの
 
 | | 状態 |
@@ -127,10 +186,10 @@ SPEC 11 の未決事項（`scale`、`bottomInset`、フリックのしきい値�
 | フリックポップアップ（パネルの内側端に固定） | ✅ `KeyboardGeometry.popupPlacement` |
 | 両手の親指の同時押し | ✅ `KeyboardGeometry.hitTest` + `MultiTouchOverlay` |
 | カーソル移動 ◀▶ | ✅ ホストでも効く |
-| 🌐 / 英数 | ⬜ 表示のみ（🌐 は拡張でしか動かせない） |
+| 🌐 | ✅ 拡張で動く（機能列は 🌐 / ⚙ / ◀ / ▶） |
 | かな漢字変換 | ⬜ プロトコルのみ（フェーズ4） |
-| キーボード拡張 | ⬜ フェーズ2 |
-| 設定パネル | ⬜ フェーズ3 |
+| キーボード拡張 | ✅ `Keyboard/`（iPad 実機で確認済み） |
+| 設定パネル | ✅ 拡張内に ⚙ で開く。端末クラス別に保存 |
 | 触覚フィードバック | ⬜ フルアクセスが要るので保留（SPEC 4） |
 
 ### ポップアップの方式

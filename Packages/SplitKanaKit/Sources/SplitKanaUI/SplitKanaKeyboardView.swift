@@ -25,6 +25,23 @@ public struct SplitKanaKeyboardView: View {
     private let configuration: KeyboardConfiguration
     private let palette: KeyPalette
     private let onOutput: (KeyOutput) -> Void
+    private let touchArea: TouchArea
+
+    /// タッチを受ける板の敷き方。
+    public enum TouchArea: Sendable {
+        /// パネルの上だけに敷く。中央はホストのもの（確認用ホストの文字表示や設定パネル）。
+        case panels
+        /// コンテナ全面に1枚だけ敷く。**キーボード拡張の通常時はこちら。**
+        /// 拡張の中央は自分の領域なので塞いで構わないし、
+        /// `.offset` を使わないぶんヒットテストの取りこぼしが起きない。
+        case container
+        /// 敷かない。キーは反応しなくなる。
+        ///
+        /// **キーの上に何かを重ねるときに使う。**タッチ板は本物の `UIView` なので、
+        /// SwiftUI で上に重ねただけでは UIKit の重なり順で負けてタッチを奪われうる。
+        /// 重ねる側を確実に触らせたいなら、こちらで降ろすのが確実。
+        case none
+    }
 
     @State private var fingers: [ObjectIdentifier: Finger] = [:]
 
@@ -32,16 +49,27 @@ public struct SplitKanaKeyboardView: View {
         geometry: KeyboardGeometry,
         configuration: KeyboardConfiguration,
         palette: KeyPalette = .standard,
+        touchArea: TouchArea = .panels,
         onOutput: @escaping (KeyOutput) -> Void
     ) {
         self.geometry = geometry
         self.configuration = configuration
         self.palette = palette
+        self.touchArea = touchArea
         self.onOutput = onOutput
     }
 
     public var body: some View {
         ZStack(alignment: .topLeading) {
+            // **これが無いと ZStack はいちばん大きい子の寸法にしかならない。**
+            // `.offset` はレイアウト寸法に影響しないので、その外へ出した子は
+            // 描画はされる（クリップされない）のに、UIKit のヒットテストが通らず
+            // タッチだけが死ぬ。コンテナ全面を占める透明な子で寸法を固定する。
+            Color.clear
+                .frame(width: geometry.containerSize.width,
+                       height: geometry.containerSize.height)
+                .allowsHitTesting(false)
+
             ForEach(geometry.panels) { panel in
                 panelView(panel)
                     .frame(width: panel.frame.width, height: panel.frame.height)
@@ -93,16 +121,37 @@ public struct SplitKanaKeyboardView: View {
     }
 
     /// パネルの上だけに敷く。中央の空きはホストのものなので塞がない。
+    ///
+    /// **コンテナの外へ出さない。**はみ出した部分は SwiftUI ではそのまま描かれるが、
+    /// UIKit のヒットテストは祖先ビューの外側を弾くため、
+    /// 見た目は正しいのにタッチだけ死ぬ、という形で壊れる。
     private var touchLayer: some View {
         let outset = SplitKanaTuning.touchOutset
-        return ForEach(geometry.panels) { panel in
-            MultiTouchOverlay { phase, id, local in
-                handle(phase, id, CGPoint(x: panel.frame.minX - outset + local.x,
-                                          y: panel.frame.minY - outset + local.y))
+        let container = CGRect(origin: .zero, size: geometry.containerSize)
+
+        let rects: [(String, CGRect)]
+        switch touchArea {
+        case .container:
+            // 1枚で全面を覆う。**`.offset` を一切使わない。**
+            // どのキーかは `hitTest` が決め、パネルの外は nil になるので実害がない。
+            rects = [("all", container)]
+        case .panels:
+            rects = geometry.panels.map {
+                ($0.id, $0.frame.insetBy(dx: -outset, dy: -outset).intersection(container))
             }
-            .frame(width: panel.frame.width + outset * 2,
-                   height: panel.frame.height + outset * 2)
-            .offset(x: panel.frame.minX - outset, y: panel.frame.minY - outset)
+        case .none:
+            rects = []
+        }
+
+        return ForEach(rects, id: \.0) { _, rect in
+            MultiTouchOverlay { phase, id, local in
+                handle(phase, id, CGPoint(x: rect.minX + local.x,
+                                          y: rect.minY + local.y))
+            }
+            .frame(width: rect.width, height: rect.height)
+            // 中身が透明なので、これが無いと当たり判定の形が空になりうる。
+            .contentShape(Rectangle())
+            .offset(x: rect.minX, y: rect.minY)
         }
     }
 

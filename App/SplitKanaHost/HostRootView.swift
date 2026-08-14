@@ -7,9 +7,22 @@ struct HostRootView: View {
     @State private var buffer = KanaTextBuffer()
     @State private var stats = TypingStats()
     @State private var notice: String?
+    @State private var isShowingSettings = false
+
+    /// 実機で詰める2値（SPEC 11）。**保存はホストの仕事**なので `SplitKanaCore` には持たせない。
+    @AppStorage("splitkana.scale")
+    private var scale = SettingsPanelView.defaultScale
+    @AppStorage("splitkana.bottomInset")
+    private var bottomInset = SettingsPanelView.defaultBottomInset
+
     /// 機能列は拡張と同じ 🌐 / 英数 / ◀ / ▶。
     /// ◀▶ はここで効く。🌐 と英数はフェーズ1では表示のみ。
-    @State private var configuration = KeyboardConfiguration.keyboardExtension
+    private var configuration: KeyboardConfiguration {
+        var configuration = KeyboardConfiguration.keyboardExtension
+        configuration.scale = CGFloat(scale)
+        configuration.bottomInset = CGFloat(bottomInset)
+        return configuration
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -24,13 +37,20 @@ struct HostRootView: View {
             ZStack(alignment: .topLeading) {
                 Color(white: 0.93).ignoresSafeArea()
 
-                TranscriptView(
-                    buffer: buffer,
-                    stats: stats,
-                    notice: notice,
-                    onClear: clear
-                )
-                .frame(width: region.width, height: region.height)
+                VStack(spacing: 8) {
+                    // キーの上には出さない。中央の空きの中だけで開閉する。
+                    if isShowingSettings {
+                        SettingsPanelView(scale: $scale, bottomInset: $bottomInset)
+                    }
+                    TranscriptView(
+                        buffer: buffer,
+                        stats: stats,
+                        notice: notice,
+                        onClear: clear,
+                        isShowingSettings: $isShowingSettings
+                    )
+                }
+                .frame(width: region.width, height: region.height, alignment: .top)
                 .offset(x: region.minX, y: region.minY)
 
                 SplitKanaKeyboardView(

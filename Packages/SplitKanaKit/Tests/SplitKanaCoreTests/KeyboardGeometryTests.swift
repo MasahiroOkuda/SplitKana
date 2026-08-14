@@ -131,6 +131,203 @@ final class KeyboardGeometryTests: XCTestCase {
         configuration.scale = 5
         let g = geometry(CGSize(width: 1180, height: 820), isPad: true, configuration: configuration)
         XCTAssertLessThanOrEqual(g.appliedScale, KeyboardConfiguration.scaleRange.upperBound)
+
+        configuration.scale = 0.1
+        let small = geometry(CGSize(width: 1180, height: 820), isPad: true, configuration: configuration)
+        XCTAssertEqual(small.appliedScale, KeyboardConfiguration.scaleRange.lowerBound, accuracy: 0.001)
+    }
+
+    /// **小さい倍率を選んだこと自体は、分割をやめる理由にならない。**
+    /// 分割の成否は画面に収まるか（fitScale）だけで決める。
+    func testSmallScaleKeepsTheSplitLayout() {
+        var configuration = config
+        configuration.scale = KeyboardConfiguration.scaleRange.lowerBound
+
+        for (size, isPad) in Self.deviceSizes where isPad || size.width > size.height {
+            let g = geometry(size, isPad: isPad, configuration: configuration)
+            XCTAssertTrue(g.isSplit, "\(size) で小さくしただけなのに統合レイアウトへ落ちた")
+            XCTAssertEqual(g.appliedScale,
+                           KeyboardConfiguration.scaleRange.lowerBound,
+                           accuracy: 0.001,
+                           "\(size) で指定した倍率が使われていない")
+        }
+    }
+
+    // MARK: - 設定で動かせる寸法
+
+    /// 上の余白は**キーの大きさを変えずに**キーボード全体の高さだけを変える。
+    func testTopPaddingChangesHeightWithoutResizingKeys() {
+        let size = CGSize(width: 1180, height: 820)
+        var tight = config
+        tight.topPadding = 0
+        var loose = config
+        loose.topPadding = 40
+
+        let a = geometry(size, isPad: true, configuration: tight)
+        let b = geometry(size, isPad: true, configuration: loose)
+
+        XCTAssertEqual(a.keyWidth, b.keyWidth, accuracy: 0.001, "余白でキー幅が変わってはいけない")
+        XCTAssertEqual(a.keyHeight, b.keyHeight, accuracy: 0.001, "余白でキー高が変わってはいけない")
+        XCTAssertEqual(b.keyboardHeight - a.keyboardHeight, 40, accuracy: 0.5)
+    }
+
+    /// 左右位置は両パネルを内側へ寄せ、中央の空きをそのぶん狭める。
+    func testSideInsetMovesBothPanelsInward() {
+        let size = CGSize(width: 1180, height: 820)
+        var near = config
+        near.sideInset = 10
+        var far = config
+        far.sideInset = 60
+
+        let a = geometry(size, isPad: true, configuration: near)
+        let b = geometry(size, isPad: true, configuration: far)
+
+        let aLeft = a.panels.first { $0.side == .left }!
+        let bLeft = b.panels.first { $0.side == .left }!
+        let aRight = a.panels.first { $0.side == .right }!
+        let bRight = b.panels.first { $0.side == .right }!
+
+        XCTAssertEqual(bLeft.frame.minX - aLeft.frame.minX, 50, accuracy: 0.5)
+        XCTAssertEqual(aRight.frame.maxX - bRight.frame.maxX, 50, accuracy: 0.5)
+        XCTAssertLessThan(b.centerGap, a.centerGap, "内側へ寄せたのに中央が狭まっていない")
+    }
+
+    /// 設定を省いたら端末別の既定値が使われる。
+    func testOmittedOverridesFallBackToTheDeviceDefaults() {
+        let size = CGSize(width: 1180, height: 820)
+        let base = DeviceClass.padLandscape.baseMetrics
+        var explicit = config
+        explicit.topPadding = base.topPadding
+        explicit.sideInset = base.sideInset
+
+        let fallback = geometry(size, isPad: true)               // topPadding / sideInset は nil
+        let same = geometry(size, isPad: true, configuration: explicit)
+
+        XCTAssertEqual(fallback.keyboardHeight, same.keyboardHeight, accuracy: 0.001)
+        XCTAssertEqual(fallback.panels.first { $0.side == .left }!.frame.minX,
+                       same.panels.first { $0.side == .left }!.frame.minX,
+                       accuracy: 0.001)
+    }
+
+    // MARK: - 拡張の高さ決め
+
+    /// キーボード拡張は自分の高さを自分で決める（SPEC 4）。
+    ///
+    /// 高さに上限を与えずに1回計算し、その `keyboardHeight` を高さ制約に入れる。
+    /// **そのあと同じ寸法で計算し直しても同じ結果にならないと、拡張の高さが毎回揺れる。**
+    func testKeyboardHeightIsStableWhenFedBackAsTheContainerHeight() {
+        let cases: [(CGFloat, Bool, DeviceClass)] = [
+            (844, false, .phoneLandscape),
+            (390, false, .phonePortrait),
+            (820, true, .padPortrait),
+            (1180, true, .padLandscape),
+            (507, true, .padPortrait)      // iPad Split View
+        ]
+        let safeArea = SafeAreaInsets(leading: 59, trailing: 59, bottom: 21)
+
+        for (width, isPad, deviceClass) in cases {
+            // 高さ側で頭打ちにしないための十分大きな値。KeyboardRootView と同じやり方。
+            let probe = KeyboardGeometry.make(
+                containerSize: CGSize(width: width, height: 4000),
+                safeArea: safeArea, isPad: isPad,
+                configuration: config, deviceClass: deviceClass
+            )
+            let height = probe.keyboardHeight
+
+            XCTAssertGreaterThan(height, 0, "幅 \(width) で高さが出ない")
+            XCTAssertLessThan(height, 4000, "幅 \(width) で高さが青天井になっている")
+
+            let settled = KeyboardGeometry.make(
+                containerSize: CGSize(width: width, height: height),
+                safeArea: safeArea, isPad: isPad,
+                configuration: config, deviceClass: deviceClass
+            )
+            XCTAssertEqual(settled.keyboardHeight, height, accuracy: 0.5,
+                           "幅 \(width) で高さが揺れる")
+            XCTAssertEqual(settled.appliedScale, probe.appliedScale, accuracy: 0.001,
+                           "幅 \(width) で倍率が揺れる")
+            XCTAssertEqual(settled.isSplit, probe.isSplit,
+                           "幅 \(width) で分割の有無が変わる")
+            XCTAssertEqual(settled.deviceClass, deviceClass,
+                           "幅 \(width) で端末クラスが変わる")
+        }
+    }
+
+    /// 拡張はコンテナ高＝キーボード高で描く。
+    ///
+    /// **このときタッチ層がコンテナの外へ出てはいけない。**
+    /// SwiftUI はクリップしないので、外へ出ても描画は正しいまま見える。
+    /// だが UIKit のヒットテストは祖先ビューの外側を弾くので、
+    /// **見た目は完璧なのにキーが一切反応しない**という形で壊れる。
+    func testTouchLayerStaysInsideTheContainerWhenSizedToTheKeyboard() {
+        let cases: [(CGFloat, Bool, DeviceClass)] = [
+            (844, false, .phoneLandscape),
+            (390, false, .phonePortrait),
+            (820, true, .padPortrait),
+            (1180, true, .padLandscape),
+            (507, true, .padPortrait)
+        ]
+        let outset = SplitKanaTuning.touchOutset
+
+        // セーフエリアの有無どちらでも成り立つこと。ズレるのはここが効く場面。
+        for safeArea in [SafeAreaInsets.zero,
+                         SafeAreaInsets(leading: 59, trailing: 59, bottom: 21)] {
+            for (width, isPad, deviceClass) in cases {
+                let height = KeyboardGeometry.make(
+                    containerSize: CGSize(width: width, height: 4000),
+                    safeArea: safeArea, isPad: isPad,
+                    configuration: config, deviceClass: deviceClass
+                ).keyboardHeight
+
+                let g = KeyboardGeometry.make(
+                    containerSize: CGSize(width: width, height: height),
+                    safeArea: safeArea, isPad: isPad,
+                    configuration: config, deviceClass: deviceClass
+                )
+
+                let container = CGRect(x: 0, y: 0, width: width, height: height)
+
+                for panel in g.panels {
+                    // パネルそのものは必ず全部入っていること。
+                    // ここが欠けると、そのぶんのキーが押せなくなる。
+                    XCTAssertGreaterThanOrEqual(panel.frame.minY, -0.5,
+                        "\(deviceClass) \(safeArea) でパネルが上にはみ出す（キーが反応しなくなる）")
+                    XCTAssertLessThanOrEqual(panel.frame.maxY, height + 0.5,
+                        "\(deviceClass) \(safeArea) でパネルが下にはみ出す")
+                    XCTAssertGreaterThanOrEqual(panel.frame.minX, -0.5,
+                        "\(deviceClass) \(safeArea) でパネルが左にはみ出す")
+                    XCTAssertLessThanOrEqual(panel.frame.maxX, width + 0.5,
+                        "\(deviceClass) \(safeArea) でパネルが右にはみ出す")
+
+                    // タッチ層はビュー側でコンテナに収まるようクランプする。
+                    // クランプ後もパネル全体を覆えていること。
+                    let touch = panel.frame.insetBy(dx: -outset, dy: -outset)
+                        .intersection(container)
+                    XCTAssertEqual(touch.union(panel.frame), touch,
+                        "\(deviceClass) \(safeArea) でクランプがパネルを削っている")
+                }
+            }
+        }
+    }
+
+    /// 拡張のコンテナは横長で背が低い。**縦横比から判定させてはいけない。**
+    func testExplicitDeviceClassOverridesTheAspectRatio() {
+        let strip = CGSize(width: 844, height: 240)   // 拡張の入力ビューの形
+        let inferred = geometry(strip, isPad: false)
+        let explicit = KeyboardGeometry.make(
+            containerSize: strip, isPad: false,
+            configuration: config, deviceClass: .phoneLandscape
+        )
+        XCTAssertEqual(inferred.deviceClass, .phoneLandscape)   // この形なら推論も一致する
+        XCTAssertEqual(explicit.deviceClass, .phoneLandscape)
+
+        // 縦長に見えるコンテナでも、指定した端末クラスが勝つ。
+        let tall = KeyboardGeometry.make(
+            containerSize: CGSize(width: 844, height: 4000), isPad: false,
+            configuration: config, deviceClass: .phoneLandscape
+        )
+        XCTAssertEqual(tall.deviceClass, .phoneLandscape)
+        XCTAssertTrue(tall.isSplit)
     }
 
     // MARK: - ポップアップの置き場所

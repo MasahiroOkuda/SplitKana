@@ -1,0 +1,529 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0232C137B151DDF85F3BDD26 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2DF7DD6AFC75669790B015 /* KeyboardViewController.swift */; };
+		023E4781DE848451E1B214F1 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E733CAE3F906DD2F8F2A40 /* TranscriptView.swift */; };
+		0DD51F614337E0F6ACAC192B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EAC81CFE26419FB979E6A319 /* Assets.xcassets */; };
+		13CCC4F4E749629031C79CD2 /* SplitKanaHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB3FE65D762100FA6F24C49 /* SplitKanaHostApp.swift */; };
+		2DC82B51672ED705F4FB9FBF /* SplitKanaCore in Frameworks */ = {isa = PBXBuildFile; productRef = C08E12C445BEA0BDDAEE7612 /* SplitKanaCore */; };
+		39224D4442707AAC6ADACE8E /* SplitKanaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 7D5CDC03599E9D4C89BAB656 /* SplitKanaUI */; };
+		3C625230AC86F5A6515C9B8C /* KeyboardRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9150849805CD7EBC14DEE86 /* KeyboardRootView.swift */; };
+		484ABB2F1CBB3D8801C0B3D3 /* TypingStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4589F34E0A7B86C0C75324A7 /* TypingStats.swift */; };
+		530050E53BD7DD40C96C9043 /* SplitKanaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 97F93EB4051AA17343C978E1 /* SplitKanaUI */; };
+		60275D6E7FC71B39A303BBB7 /* SplitKanaKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3848DB21C3E658FF6C3D8DDB /* SplitKanaKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		892F2FDD4C9043F2EE058DEA /* KeyboardSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C6824055C165B15F9AFE8A5 /* KeyboardSettings.swift */; };
+		A2A8861F2334E80B21165DB3 /* SettingsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D20E91FED827B1682CAEF29 /* SettingsPanelView.swift */; };
+		A32A448617A704B5E29A71EB /* SplitKanaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7B3D67B3FB5FB6641171A551 /* SplitKanaCore */; };
+		ECA2B328ADF315E78073A775 /* HostRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C926A5CA68A365E5B40A12 /* HostRootView.swift */; };
+		F50EDE576E81DE9F27905AA4 /* KeyboardSettingsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E233394A5D750E89F3847820 /* KeyboardSettingsPanel.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E93E876FFBCF744866C22D4C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3282D2D676645ADA413D4CA1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3B49017F3EDDC96B9FFF0DF0;
+			remoteInfo = SplitKanaKeyboard;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		257608E245F4916FB6751199 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				60275D6E7FC71B39A303BBB7 /* SplitKanaKeyboard.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		1B6A413A554903AA0E9440FF /* SplitKanaHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SplitKanaHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1C6824055C165B15F9AFE8A5 /* KeyboardSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSettings.swift; sourceTree = "<group>"; };
+		2D20E91FED827B1682CAEF29 /* SettingsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanelView.swift; sourceTree = "<group>"; };
+		3848DB21C3E658FF6C3D8DDB /* SplitKanaKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SplitKanaKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4589F34E0A7B86C0C75324A7 /* TypingStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypingStats.swift; sourceTree = "<group>"; };
+		81C926A5CA68A365E5B40A12 /* HostRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostRootView.swift; sourceTree = "<group>"; };
+		9A7BFD5482D4AA74A0E6DB2A /* SplitKanaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SplitKanaKit; path = Packages/SplitKanaKit; sourceTree = SOURCE_ROOT; };
+		A9150849805CD7EBC14DEE86 /* KeyboardRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRootView.swift; sourceTree = "<group>"; };
+		AB2DF7DD6AFC75669790B015 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		D7E733CAE3F906DD2F8F2A40 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
+		E233394A5D750E89F3847820 /* KeyboardSettingsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSettingsPanel.swift; sourceTree = "<group>"; };
+		EAC81CFE26419FB979E6A319 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FAB3FE65D762100FA6F24C49 /* SplitKanaHostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitKanaHostApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		062EDEBFD1A1A7583E403912 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A32A448617A704B5E29A71EB /* SplitKanaCore in Frameworks */,
+				39224D4442707AAC6ADACE8E /* SplitKanaUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0E6E022A5B770CD4302D7625 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DC82B51672ED705F4FB9FBF /* SplitKanaCore in Frameworks */,
+				530050E53BD7DD40C96C9043 /* SplitKanaUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		31F656E75C2780C3C81A0BC6 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				9A7BFD5482D4AA74A0E6DB2A /* SplitKanaKit */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		36501BB41B0E86FDCBB54773 /* Keyboard */ = {
+			isa = PBXGroup;
+			children = (
+				A9150849805CD7EBC14DEE86 /* KeyboardRootView.swift */,
+				1C6824055C165B15F9AFE8A5 /* KeyboardSettings.swift */,
+				E233394A5D750E89F3847820 /* KeyboardSettingsPanel.swift */,
+				AB2DF7DD6AFC75669790B015 /* KeyboardViewController.swift */,
+			);
+			path = Keyboard;
+			sourceTree = "<group>";
+		};
+		4CE468225964688210CD5665 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1B6A413A554903AA0E9440FF /* SplitKanaHost.app */,
+				3848DB21C3E658FF6C3D8DDB /* SplitKanaKeyboard.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E7C606523FF3EF7B39738606 /* SplitKanaHost */ = {
+			isa = PBXGroup;
+			children = (
+				EAC81CFE26419FB979E6A319 /* Assets.xcassets */,
+				81C926A5CA68A365E5B40A12 /* HostRootView.swift */,
+				2D20E91FED827B1682CAEF29 /* SettingsPanelView.swift */,
+				FAB3FE65D762100FA6F24C49 /* SplitKanaHostApp.swift */,
+				D7E733CAE3F906DD2F8F2A40 /* TranscriptView.swift */,
+				4589F34E0A7B86C0C75324A7 /* TypingStats.swift */,
+			);
+			name = SplitKanaHost;
+			path = App/SplitKanaHost;
+			sourceTree = "<group>";
+		};
+		F82AF42BB7858F6F225568D3 = {
+			isa = PBXGroup;
+			children = (
+				36501BB41B0E86FDCBB54773 /* Keyboard */,
+				31F656E75C2780C3C81A0BC6 /* Packages */,
+				E7C606523FF3EF7B39738606 /* SplitKanaHost */,
+				4CE468225964688210CD5665 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3B49017F3EDDC96B9FFF0DF0 /* SplitKanaKeyboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 680C6159916335C53AF27D93 /* Build configuration list for PBXNativeTarget "SplitKanaKeyboard" */;
+			buildPhases = (
+				F5BDC122D80AC2EB8BA111E8 /* Sources */,
+				062EDEBFD1A1A7583E403912 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SplitKanaKeyboard;
+			packageProductDependencies = (
+				7B3D67B3FB5FB6641171A551 /* SplitKanaCore */,
+				7D5CDC03599E9D4C89BAB656 /* SplitKanaUI */,
+			);
+			productName = SplitKanaKeyboard;
+			productReference = 3848DB21C3E658FF6C3D8DDB /* SplitKanaKeyboard.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		6297AA10916B744CD444FE19 /* SplitKanaHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E59A636580840F3C2D9973A /* Build configuration list for PBXNativeTarget "SplitKanaHost" */;
+			buildPhases = (
+				858B0DE808AD46E05585CFFD /* Sources */,
+				3FE2DAC277BD1C0E2448C68D /* Resources */,
+				0E6E022A5B770CD4302D7625 /* Frameworks */,
+				257608E245F4916FB6751199 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DDCFE9DD9610D26F342009AD /* PBXTargetDependency */,
+			);
+			name = SplitKanaHost;
+			packageProductDependencies = (
+				C08E12C445BEA0BDDAEE7612 /* SplitKanaCore */,
+				97F93EB4051AA17343C978E1 /* SplitKanaUI */,
+			);
+			productName = SplitKanaHost;
+			productReference = 1B6A413A554903AA0E9440FF /* SplitKanaHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3282D2D676645ADA413D4CA1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3B49017F3EDDC96B9FFF0DF0 = {
+						ProvisioningStyle = Automatic;
+					};
+					6297AA10916B744CD444FE19 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 19A8EDBFDBEBDFC9308C4653 /* Build configuration list for PBXProject "SplitKana" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = F82AF42BB7858F6F225568D3;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				47705071420A18D4FF3B667D /* XCLocalSwiftPackageReference "Packages/SplitKanaKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4CE468225964688210CD5665 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6297AA10916B744CD444FE19 /* SplitKanaHost */,
+				3B49017F3EDDC96B9FFF0DF0 /* SplitKanaKeyboard */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3FE2DAC277BD1C0E2448C68D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0DD51F614337E0F6ACAC192B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		858B0DE808AD46E05585CFFD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ECA2B328ADF315E78073A775 /* HostRootView.swift in Sources */,
+				A2A8861F2334E80B21165DB3 /* SettingsPanelView.swift in Sources */,
+				13CCC4F4E749629031C79CD2 /* SplitKanaHostApp.swift in Sources */,
+				023E4781DE848451E1B214F1 /* TranscriptView.swift in Sources */,
+				484ABB2F1CBB3D8801C0B3D3 /* TypingStats.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F5BDC122D80AC2EB8BA111E8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C625230AC86F5A6515C9B8C /* KeyboardRootView.swift in Sources */,
+				892F2FDD4C9043F2EE058DEA /* KeyboardSettings.swift in Sources */,
+				F50EDE576E81DE9F27905AA4 /* KeyboardSettingsPanel.swift in Sources */,
+				0232C137B151DDF85F3BDD26 /* KeyboardViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DDCFE9DD9610D26F342009AD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3B49017F3EDDC96B9FFF0DF0 /* SplitKanaKeyboard */;
+			targetProxy = E93E876FFBCF744866C22D4C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0F5D7646418E9C201662DD80 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		147B5D1EE9B0CE3111D59BE3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
+				INFOPLIST_FILE = "Generated/SplitKanaHost-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.splitkana.host;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		496C40E87B47871E61AFB81C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
+				INFOPLIST_FILE = "Generated/SplitKanaKeyboard-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.splitkana.host.keyboard;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		52849D6B6D63E7A74AB22828 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
+				INFOPLIST_FILE = "Generated/SplitKanaHost-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.splitkana.host;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		952E35D35294B03147E5FC60 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PPB74JD3JG;
+				INFOPLIST_FILE = "Generated/SplitKanaKeyboard-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.splitkana.host.keyboard;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EC1B6AA0102E2095A23D08BB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		19A8EDBFDBEBDFC9308C4653 /* Build configuration list for PBXProject "SplitKana" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC1B6AA0102E2095A23D08BB /* Debug */,
+				0F5D7646418E9C201662DD80 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		680C6159916335C53AF27D93 /* Build configuration list for PBXNativeTarget "SplitKanaKeyboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				496C40E87B47871E61AFB81C /* Debug */,
+				952E35D35294B03147E5FC60 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6E59A636580840F3C2D9973A /* Build configuration list for PBXNativeTarget "SplitKanaHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				52849D6B6D63E7A74AB22828 /* Debug */,
+				147B5D1EE9B0CE3111D59BE3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		47705071420A18D4FF3B667D /* XCLocalSwiftPackageReference "Packages/SplitKanaKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SplitKanaKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7B3D67B3FB5FB6641171A551 /* SplitKanaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SplitKanaCore;
+		};
+		7D5CDC03599E9D4C89BAB656 /* SplitKanaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SplitKanaUI;
+		};
+		97F93EB4051AA17343C978E1 /* SplitKanaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SplitKanaUI;
+		};
+		C08E12C445BEA0BDDAEE7612 /* SplitKanaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SplitKanaCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 3282D2D676645ADA413D4CA1 /* Project object */;
+}
