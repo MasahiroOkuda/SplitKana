@@ -43,6 +43,8 @@ public struct KanaTextBuffer: Equatable, Sendable {
             return cycleDakuten()
         case .cursor(let offset):
             cursor = min(max(cursor + offset, 0), text.count)
+        case .candidate:
+            return false
         case .nextInputMode, .custom:
             return false
         }

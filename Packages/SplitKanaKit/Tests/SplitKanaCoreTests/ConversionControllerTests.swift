@@ -64,4 +64,52 @@ final class ConversionControllerTests: XCTestCase {
         var c = controller()
         XCTAssertEqual(c.handle(.backspace), [.passthrough(.backspace)])
     }
+
+    func testSpaceMovesToTheNextCandidate() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        let effects = c.handle(.space)
+        XCTAssertEqual(c.session.selection, 1)
+        XCTAssertEqual(effects, [.markedText("缶")])
+    }
+
+    func testCandidateSelectionWrapsAround() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        _ = c.handle(.space)      // 缶
+        _ = c.handle(.space)      // 巻
+        let effects = c.handle(.space)
+        XCTAssertEqual(c.session.selection, 0, "末尾の次は先頭に戻る")
+        XCTAssertEqual(effects, [.markedText("感")])
+    }
+
+    func testBackwardCandidateWrapsAround() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        let effects = c.handle(.candidate(-1))
+        XCTAssertEqual(c.session.selection, 2, "先頭の前は末尾へ回る")
+        XCTAssertEqual(effects, [.markedText("巻")])
+    }
+
+    func testCandidateMovementDoesNotRequeryTheConverter() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        let before = c.session.candidates
+        _ = c.handle(.space)
+        XCTAssertEqual(c.session.candidates, before, "候補送りで引き直してはいけない")
+    }
+
+    func testSpaceWhenNotComposingPassesThrough() {
+        var c = controller()
+        XCTAssertEqual(c.handle(.space), [.passthrough(.space)])
+    }
+
+    func testCandidateWhenNotComposingDoesNothing() {
+        var c = controller()
+        XCTAssertEqual(c.handle(.candidate(-1)), [])
+    }
 }
