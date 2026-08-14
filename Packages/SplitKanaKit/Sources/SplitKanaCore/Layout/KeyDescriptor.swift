@@ -31,7 +31,8 @@ public enum KeyKind: Equatable, Sendable {
     case space
     case newline
     case function(FunctionKey)
-    /// 英数モードの1文字。大文字・小文字は生成時に決まっている。
+    /// フリックしない1文字キー。英数モードの英字・記号と、数字モードの数字。
+    /// 大文字・小文字は生成時に決まっている。
     case latin(String)
     /// 英数モードの ⇧。押すと次の1文字が大文字になる。
     case shift
@@ -116,6 +117,9 @@ public enum KeyColumn: String, Sendable {
     case utility
 
     public func keys(configuration: KeyboardConfiguration) -> [KeyDescriptor] {
+        if configuration.mode == .number, let keys = numberKeys {
+            return keys
+        }
         switch self {
         case .function:
             return configuration.normalizedFunctionColumn.map { KeyDescriptor(.function($0)) }
@@ -147,5 +151,41 @@ public enum KeyColumn: String, Sendable {
                 KeyDescriptor(.newline, rowSpan: 2)
             ]
         }
+    }
+
+    /// 数字モードでの中身（SPEC 2.7）。かな用の列を持たない列は nil を返し、
+    /// かなと同じものを使う。
+    ///
+    /// **かなのグリッドを行で読むと日本語12キーの数字並びにそのまま重なる。**
+    ///
+    /// ```
+    /// あ か さ → 1 2 3
+    /// た な は → 4 5 6
+    /// ま や ら → 7 8 9
+    /// 小 わ 、 → . 0 ,
+    /// ```
+    ///
+    /// あ列は右パネルにも複製されるので、1・4・7 が両側に出る。
+    /// かなの あ・た・ま と同じ重複なので、指の位置はかなから変わらない。
+    private var numberKeys: [KeyDescriptor]? {
+        switch self {
+        case .function:
+            // 機能列はモード切り替えキーの文字が変わるだけ。かなと共通で足りる。
+            return nil
+        case .aColumn:
+            return digits(["1", "4", "7", "."])
+        case .kaColumn:
+            return digits(["2", "5", "8", "0"])
+        case .saColumn:
+            return digits(["3", "6", "9", ","])
+        case .utility:
+            // ⌫・空白・改行の位置は動かさない。モードを跨いで同じ場所にある。
+            return nil
+        }
+    }
+
+    private func digits(_ characters: [String]) -> [KeyDescriptor] {
+        // `.latin` は「フリックしない1文字キー」。数字も同じ扱いでよい。
+        characters.map { KeyDescriptor(.latin($0)) }
     }
 }

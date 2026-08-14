@@ -10,6 +10,30 @@ import CoreGraphics
 public enum InputMode: String, Equatable, Sendable {
     case kana
     case latin
+    /// 数字。**かなと同じグリッドを使う**（SPEC 2.7）。
+    /// 行で読むと日本語12キーの数字並びにそのまま重なるので、指の位置が変わらない。
+    case number
+
+    /// 次のモード。**かな → 数字 → 英字 → かな** の一方通行で回る。
+    ///
+    /// モードごとに切り替えキーを置くと機能列の席が足りない。1キーで回す。
+    public var next: InputMode {
+        switch self {
+        case .kana: return .number
+        case .number: return .latin
+        case .latin: return .kana
+        }
+    }
+
+    /// 切り替えキーに出す文字。**押した先**を出す。いまのモードを出すと、
+    /// 押すと何になるのかが読めない。
+    public var label: String {
+        switch self {
+        case .kana: return "かな"
+        case .latin: return "ABC"
+        case .number: return "123"
+        }
+    }
 }
 
 /// ホストから受け取る設定（SPEC 2.2 / 3.1）。
@@ -81,8 +105,14 @@ public struct KeyboardConfiguration: Equatable, Sendable {
     }
 
     /// 常に4キーに揃えた機能列。
+    ///
+    /// モード切り替えキーの文字だけはここで差し替える。ホストは「切り替えキーを置く」
+    /// とだけ決めればよく、いまどのモードかを知らなくて済む。
     public var normalizedFunctionColumn: [FunctionKey] {
-        var keys = Array(functionColumn.prefix(4))
+        var keys = Array(functionColumn.prefix(4)).map { key -> FunctionKey in
+            guard key.output == Self.nextModeOutput else { return key }
+            return FunctionKey(title: mode.next.label, output: key.output)
+        }
         while keys.count < 4 {
             keys.append(FunctionKey(title: "", output: .custom("noop")))
         }
@@ -100,10 +130,8 @@ public extension KeyboardConfiguration {
     /// 設定はキーボードの中にパネルとして持つ（SPEC 4）。
     static let settingsOutput = KeyOutput.custom("settings")
 
-    /// 英数モードへ切り替える。
-    static let latinModeOutput = KeyOutput.custom("latin")
-    /// かなモードへ戻す。
-    static let kanaModeOutput = KeyOutput.custom("kana")
+    /// 次のモードへ回す。かな → 数字 → 英字 → かな。
+    static let nextModeOutput = KeyOutput.custom("mode")
     /// ⇧。次の1文字を大文字にする。続けて押すと固定。
     static let shiftOutput = KeyOutput.custom("shift")
 
@@ -122,7 +150,8 @@ public extension KeyboardConfiguration {
                 output: .custom("noop"),
                 flickOutputs: [.left: .cursor(-1), .right: .cursor(1)]
             ),
-            FunctionKey(title: "英数", output: KeyboardConfiguration.latinModeOutput)
+            // 文字は `normalizedFunctionColumn` がモードに合わせて差し替える。
+            FunctionKey(title: "", output: KeyboardConfiguration.nextModeOutput)
         ])
     }
 
