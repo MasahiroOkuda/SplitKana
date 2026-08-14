@@ -186,12 +186,7 @@ public struct SplitKanaKeyboardView: View {
     }
 
     private func emit(_ finger: Finger) {
-        if let flickSet = finger.hit.key.kind.flickSet {
-            onOutput(.insert(flickSet.character(for: finger.direction)))
-        } else {
-            // フリックを持たないキーは方向を無視する。
-            onOutput(finger.hit.key.kind.baseOutput)
-        }
+        onOutput(finger.hit.key.kind.output(for: finger.direction))
     }
 }
 

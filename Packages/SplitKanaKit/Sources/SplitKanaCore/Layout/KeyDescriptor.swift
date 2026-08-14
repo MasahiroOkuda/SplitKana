@@ -49,6 +49,21 @@ public enum KeyKind: Equatable, Sendable {
         if case .kana(let set) = self { return set }
         return nil
     }
+
+    /// フリック方向を踏まえた出力。
+    ///
+    /// 空白キーだけは左フリックで候補の逆送りになる（SPEC 5.2）。
+    /// **ポップアップは出さない。**見た目に出るのはかなキーのフリックだけ。
+    public func output(for direction: FlickDirection) -> KeyOutput {
+        switch self {
+        case .kana(let set):
+            return .insert(set.character(for: direction))
+        case .space:
+            return direction == .left ? .candidate(-1) : .space
+        default:
+            return baseOutput
+        }
+    }
 }
 
 /// レイアウト前のキー定義。
