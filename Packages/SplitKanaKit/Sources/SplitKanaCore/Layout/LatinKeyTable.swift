@@ -9,14 +9,16 @@ import CoreGraphics
 /// 行ごとにキー数が違い、半キーずれるので、列に押し込むと表現できない。
 ///
 /// ```
-/// 左パネル                右パネル
-/// Q  W  E  R  T           Y  U  I  O  P
-///  A  S  D  F              G  H  J  K  L
-/// ⇧  Z  X  C  V            B  N  M  ⌫
-/// 🌐 ⚙ かな  ␣             ␣      改行
+/// 左パネル                  右パネル
+/// Q  W  E  R  T             Y  U  I  O  P
+///  A  S  D  F  G             H  J  K  L
+/// ⇧  Z  X  C  V  B             N  M  ⌫
+/// 🌐 ⚙ かな   ␣              ␣      改行
 /// ```
 ///
-/// 左右で 10 / 9 / 7 文字を分けている。標準の QWERTY と同じ並び。
+/// **どちらの手で打つかで分ける。**G と B は左手の人差し指なので左。
+/// 左右のキー数が揃わないぶんパネル幅も揃わないが、
+/// 揃えるために打つ手と違う側へ寄せるほうが、打っていて迷う。
 public enum LatinKeyTable {
 
     /// 1行ぶん。
@@ -38,30 +40,35 @@ public enum LatinKeyTable {
         }
     }
 
-    /// パネルの列数。左右とも5。行の中身が変わっても枠は変えない。
-    public static let columns = 5
+    /// 左パネルの列数。⇧ を頭に付けた ZXCVB の行がいちばん長い。
+    public static let leftColumns = 6
+    /// 右パネルの列数。YUIOP の行がいちばん長い。
+    public static let rightColumns = 5
 
     public static func leftRows(shifted: Bool) -> [Row] {
         [
             Row(letters("qwert", shifted: shifted)),
-            Row(letters("asdf", shifted: shifted), indent: 0.5),
-            Row([KeyDescriptor(.shift)] + letters("zxcv", shifted: shifted)),
+            Row(letters("asdfg", shifted: shifted), indent: 0.5),
+            Row([KeyDescriptor(.shift)] + letters("zxcvb", shifted: shifted)),
             Row([
                 KeyDescriptor(.function(FunctionKey(title: "🌐", output: .nextInputMode))),
                 KeyDescriptor(.function(FunctionKey(
                     title: "⚙", output: KeyboardConfiguration.settingsOutput))),
                 KeyDescriptor(.function(FunctionKey(
                     title: "かな", output: KeyboardConfiguration.kanaModeOutput))),
-                KeyDescriptor(.space, columnSpan: 2)
+                KeyDescriptor(.space, columnSpan: 3)
             ])
         ]
     }
 
+    /// 段差は左パネルから続いている。
+    /// 左が 0 / 0.5 / 1.0 とずれていくので、右も同じだけずらす。
     public static func rightRows(shifted: Bool) -> [Row] {
         [
             Row(letters("yuiop", shifted: shifted)),
-            Row(letters("ghjkl", shifted: shifted)),
-            Row(letters("bnm", shifted: shifted) + [KeyDescriptor(.backspace)], indent: 0.5),
+            Row(letters("hjkl", shifted: shifted), indent: 0.5),
+            Row(letters("nm", shifted: shifted)
+                + [KeyDescriptor(.backspace, columnSpan: 2)], indent: 1),
             Row([
                 KeyDescriptor(.space, columnSpan: 3),
                 KeyDescriptor(.newline, columnSpan: 2)

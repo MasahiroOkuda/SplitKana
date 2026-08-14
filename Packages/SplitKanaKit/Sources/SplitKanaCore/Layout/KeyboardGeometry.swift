@@ -204,9 +204,9 @@ public extension KeyboardGeometry {
         // まず分割を試す。
         if deviceClass.attemptsSplit {
             // 左パネル 2列（ギャップ1）＋ 右パネル n列（ギャップ n-1）
-            // 英数は左右とも5列。かなは左2列＋右 n 列。
+            // 英数は左6列＋右5列（打つ手で分けたので左右で数が違う）。かなは左2列＋右 n 列。
             let totalColumns = configuration.mode == .latin
-                ? LatinKeyTable.columns * 2
+                ? LatinKeyTable.leftColumns + LatinKeyTable.rightColumns
                 : 2 + rightColumnCount
             let unitWidth = base.keyWidth * CGFloat(totalColumns)
                 + base.gapX * CGFloat(totalColumns - 2)
@@ -238,7 +238,10 @@ public extension KeyboardGeometry {
         }
 
         // 分割の余地がない → 標準どおりの5列にフォールバック（SPEC 3.3）。
-        let unifiedColumns = 5
+        // 英数は左右をくっつけて1枚の QWERTY にする（SPEC 2.6）。
+        let unifiedColumns = configuration.mode == .latin
+            ? LatinKeyTable.leftColumns + LatinKeyTable.rightColumns
+            : 5
         let unitWidth = base.keyWidth * CGFloat(unifiedColumns) + base.gapX * CGFloat(unifiedColumns - 1)
         let widthScale = unitWidth > 0 ? usableWidth / unitWidth : requestedScale
         let scale = min(requestedScale, widthScale, heightScale)
@@ -277,8 +280,8 @@ public extension KeyboardGeometry {
         let panelY = containerSize.height - keyboardHeight + base.topPadding
 
         let isLatin = configuration.mode == .latin
-        let leftColumnCount = isLatin ? LatinKeyTable.columns : 2
-        let rightCount = isLatin ? LatinKeyTable.columns : rightColumnCount
+        let leftColumnCount = isLatin ? LatinKeyTable.leftColumns : 2
+        let rightCount = isLatin ? LatinKeyTable.rightColumns : rightColumnCount
 
         let leftWidth = kw * CGFloat(leftColumnCount) + gx * CGFloat(leftColumnCount - 1)
         let rightWidth = kw * CGFloat(rightCount) + gx * CGFloat(rightCount - 1)
@@ -364,16 +367,36 @@ public extension KeyboardGeometry {
         let keyboardHeight = panelHeight + base.topPadding + bottomInset + safeArea.bottom
         let panelY = containerSize.height - keyboardHeight + base.topPadding
 
+        let isLatin = configuration.mode == .latin
         let columns: [KeyColumn] = [.function, .aColumn, .kaColumn, .saColumn, .utility]
-        let panelWidth = kw * CGFloat(columns.count) + gx * CGFloat(columns.count - 1)
+        let columnCount = isLatin
+            ? LatinKeyTable.leftColumns + LatinKeyTable.rightColumns
+            : columns.count
+        let panelWidth = kw * CGFloat(columnCount) + gx * CGFloat(columnCount - 1)
         let panelX = (containerSize.width - panelWidth) / 2
+
+        // 英数は左右のパネルを隙間なくつないで、1枚の QWERTY にする。
+        // かなと違って**分割をやめても配列は変わらない**ので、指の記憶がそのまま効く。
+        func latinKeys() -> [PlacedKey] {
+            placeRows(LatinKeyTable.leftRows(shifted: configuration.isShifted),
+                      panelID: "unified.left",
+                      kw: kw, kh: kh, gx: gx, gy: gy,
+                      popupSide: .trailing)
+                + placeRows(LatinKeyTable.rightRows(shifted: configuration.isShifted),
+                            panelID: "unified.right",
+                            kw: kw, kh: kh, gx: gx, gy: gy,
+                            popupSide: .leading,
+                            indentOffset: CGFloat(LatinKeyTable.leftColumns))
+        }
 
         // 統合レイアウトでは中央の空きがないので、左半分は右へ、右半分は左へ開く。
         let panel = PanelGeometry(
             id: "panel.unified",
             side: .unified,
             frame: CGRect(x: panelX, y: panelY, width: panelWidth, height: panelHeight),
-            keys: place(columns: columns,
+            keys: isLatin
+                ? latinKeys()
+                : place(columns: columns,
                         panelID: "unified",
                         kw: kw, kh: kh, gx: gx, gy: gy,
                         panelWidth: panelWidth,
@@ -449,14 +472,16 @@ public extension KeyboardGeometry {
         kh: CGFloat,
         gx: CGFloat,
         gy: CGFloat,
-        popupSide: PopupSide
+        popupSide: PopupSide,
+        /// 全行をまとめて右へずらす量。統合レイアウトで右半分をつなぐのに使う。
+        indentOffset: CGFloat = 0
     ) -> [PlacedKey] {
 
         var placed: [PlacedKey] = []
 
         for (rowIndex, row) in rows.enumerated() {
             let y = CGFloat(rowIndex) * (kh + gy)
-            var column = row.indent
+            var column = row.indent + indentOffset
 
             for (keyIndex, key) in row.keys.enumerated() {
                 let span = CGFloat(max(1, key.columnSpan))

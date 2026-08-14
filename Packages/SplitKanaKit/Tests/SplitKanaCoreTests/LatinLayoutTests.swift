@@ -31,18 +31,19 @@ final class LatinLayoutTests: XCTestCase {
 
     // MARK: - 並び
 
-    func testQwertyOrder() {
+    /// **左手で打つ字は左、右手で打つ字は右。**G と B は左手の人差し指なので左。
+    func testQwertyOrderFollowsTypingHands() {
         let g = geometry()
         XCTAssertTrue(g.isSplit)
         XCTAssertEqual(labels(panel(.left, g)),
                        ["q", "w", "e", "r", "t",
-                        "a", "s", "d", "f",
-                        "⇧", "z", "x", "c", "v",
+                        "a", "s", "d", "f", "g",
+                        "⇧", "z", "x", "c", "v", "b",
                         "🌐", "⚙", "かな", "空白"])
         XCTAssertEqual(labels(panel(.right, g)),
                        ["y", "u", "i", "o", "p",
-                        "g", "h", "j", "k", "l",
-                        "b", "n", "m", "⌫",
+                        "h", "j", "k", "l",
+                        "n", "m", "⌫",
                         "空白", "改行"])
     }
 
@@ -65,20 +66,27 @@ final class LatinLayoutTests: XCTestCase {
 
     // MARK: - 幅と段差
 
-    func testPanelsAreFiveColumnsWide() {
+    /// 左右で列数が違う。揃えるためにキーを打つ手と違う側へ寄せない、と決めた結果。
+    func testPanelsAreSixAndFiveColumnsWide() {
         let g = geometry()
-        let expected = g.keyWidth * 5 + g.gapX * 4
-        XCTAssertEqual(panel(.left, g).frame.width, expected, accuracy: 0.5)
-        XCTAssertEqual(panel(.right, g).frame.width, expected, accuracy: 0.5)
+        XCTAssertEqual(panel(.left, g).frame.width,
+                       g.keyWidth * 6 + g.gapX * 5, accuracy: 0.5)
+        XCTAssertEqual(panel(.right, g).frame.width,
+                       g.keyWidth * 5 + g.gapX * 4, accuracy: 0.5)
     }
 
-    func testHomeRowIsIndentedByHalfKey() {
+    /// 段差は左パネルから右パネルへ続く。行が下がるごとに半キーずつ右へ。
+    func testRowsAreStaggered() {
         let g = geometry()
+        let step = (g.keyWidth + g.gapX) / 2
+
         let left = panel(.left, g)
-        let q = left.keys[0]
-        let a = left.keys[5]
-        XCTAssertEqual(a.rect.minY - q.rect.minY, g.keyHeight + g.gapY, accuracy: 0.5)
-        XCTAssertEqual(a.rect.minX - q.rect.minX, (g.keyWidth + g.gapX) / 2, accuracy: 0.5)
+        XCTAssertEqual(left.keys[5].rect.minX - left.keys[0].rect.minX, step, accuracy: 0.5)  // a
+        XCTAssertEqual(left.keys[10].rect.minX, 0, accuracy: 0.5)                             // ⇧
+
+        let right = panel(.right, g)
+        XCTAssertEqual(right.keys[5].rect.minX - right.keys[0].rect.minX, step, accuracy: 0.5)  // h
+        XCTAssertEqual(right.keys[9].rect.minX - right.keys[0].rect.minX, step * 2, accuracy: 0.5) // n
     }
 
     func testWideKeysSpanColumns() {
@@ -139,9 +147,50 @@ final class LatinLayoutTests: XCTestCase {
         XCTAssertEqual(panel(.left, g).frame.width, g.keyWidth * 2 + g.gapX, accuracy: 0.5)
     }
 
-    /// 英数はかなより横幅を食う（左右5列ずつ）。それでも分割が崩れないこと。
+    /// 英数はかなより横幅を食う（左6列＋右5列）。それでも iPad 横なら分割は保つ。
     func testLatinStillSplitsOnPad() {
         XCTAssertTrue(geometry().isSplit)
         XCTAssertGreaterThan(geometry().centerGap, SplitKanaTuning.minimumCenterGap)
+    }
+
+    // MARK: - 分割できないとき
+
+    /// 幅が足りなくても**かなの配列に落ちてはいけない**。
+    /// 英数のまま左右をつないで1枚の QWERTY にする。
+    func testNarrowScreenKeepsQwerty() {
+        let g = KeyboardGeometry.make(
+            containerSize: CGSize(width: 390, height: 700),
+            isPad: false,
+            configuration: latin(),
+            deviceClass: .phonePortrait
+        )
+
+        XCTAssertFalse(g.isSplit)
+        let all = labels(g.panels[0])
+        XCTAssertEqual(all.prefix(5).joined(), "qwert")
+        XCTAssertTrue(all.contains("g"))
+        XCTAssertFalse(all.contains("あ"))
+
+        // 左右がひと続きになっている。q の行は 11列ぶん。
+        let q = g.panels[0].keys[0]
+        let p = g.panels[0].keys.first { $0.key.kind == .latin("p") }!
+        XCTAssertEqual(p.rect.maxX - q.rect.minX,
+                       g.keyWidth * 11 + g.gapX * 10, accuracy: 0.5)
+        XCTAssertEqual(p.rect.maxX, g.panels[0].frame.width, accuracy: 0.5)
+    }
+
+    func testNarrowScreenKeysStayInsidePanel() {
+        let g = KeyboardGeometry.make(
+            containerSize: CGSize(width: 390, height: 700),
+            isPad: false,
+            configuration: latin(),
+            deviceClass: .phonePortrait
+        )
+        let panel = g.panels[0]
+        for key in panel.keys {
+            XCTAssertLessThanOrEqual(key.rect.maxX, panel.frame.width + 0.5, key.id)
+        }
+        // id が左右で衝突していないこと。衝突すると当たり判定が片方に吸われる。
+        XCTAssertEqual(Set(panel.keys.map(\.id)).count, panel.keys.count)
     }
 }
