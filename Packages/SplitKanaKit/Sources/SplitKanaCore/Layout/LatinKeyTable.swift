@@ -12,8 +12,8 @@ import CoreGraphics
 /// 左パネル                  右パネル
 /// Q  W  E  R  T             Y  U  I  O  P
 ///  A  S  D  F  G             H  J  K  L
-/// ⇧  Z  X  C  V  B             N  M  ⌫
-/// 🌐 ⚙ かな   ␣              ␣      改行
+/// ⇧  Z  X  C  V  B             N  M  ,  .  ⌫
+/// 🌐 ⚙ かな   ␣              ␣       改行
 /// ```
 ///
 /// **どちらの手で打つかで分ける。**G と B は左手の人差し指なので左。
@@ -42,8 +42,8 @@ public enum LatinKeyTable {
 
     /// 左パネルの列数。⇧ を頭に付けた ZXCVB の行がいちばん長い。
     public static let leftColumns = 6
-    /// 右パネルの列数。YUIOP の行がいちばん長い。
-    public static let rightColumns = 5
+    /// 右パネルの列数。N M , . ⌫ の行がいちばん長い。
+    public static let rightColumns = 6
 
     public static func leftRows(shifted: Bool) -> [Row] {
         [
@@ -67,11 +67,13 @@ public enum LatinKeyTable {
         [
             Row(letters("yuiop", shifted: shifted)),
             Row(letters("hjkl", shifted: shifted), indent: 0.5),
+            // 読点・句点は ⇧ で変わらない。英数モードなので半角のまま。
             Row(letters("nm", shifted: shifted)
-                + [KeyDescriptor(.backspace, columnSpan: 2)], indent: 1),
+                + [KeyDescriptor(.latin(",")), KeyDescriptor(.latin(".")),
+                   KeyDescriptor(.backspace)], indent: 1),
             Row([
                 KeyDescriptor(.space, columnSpan: 3),
-                KeyDescriptor(.newline, columnSpan: 2)
+                KeyDescriptor(.newline, columnSpan: 3)
             ])
         ]
     }
