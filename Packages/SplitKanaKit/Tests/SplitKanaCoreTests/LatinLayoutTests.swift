@@ -43,7 +43,7 @@ final class LatinLayoutTests: XCTestCase {
         XCTAssertEqual(labels(panel(.right, g)),
                        ["y", "u", "i", "o", "p",
                         "h", "j", "k", "l",
-                        "n", "m", "⌫",
+                        "n", "m", ",", ".", "⌫",
                         "空白", "改行"])
     }
 
@@ -66,13 +66,24 @@ final class LatinLayoutTests: XCTestCase {
 
     // MARK: - 幅と段差
 
-    /// 左右で列数が違う。揃えるためにキーを打つ手と違う側へ寄せない、と決めた結果。
-    func testPanelsAreSixAndFiveColumnsWide() {
+    /// 左右で列数が揃わなくてよい。打つ手のほうを優先した結果。
+    func testPanelWidthsFollowTheirLongestRow() {
         let g = geometry()
         XCTAssertEqual(panel(.left, g).frame.width,
                        g.keyWidth * 6 + g.gapX * 5, accuracy: 0.5)
         XCTAssertEqual(panel(.right, g).frame.width,
-                       g.keyWidth * 5 + g.gapX * 4, accuracy: 0.5)
+                       g.keyWidth * 6 + g.gapX * 5, accuracy: 0.5)
+    }
+
+    func testCommaAndPeriodAreAscii() {
+        for shifted in [false, true] {
+            let keys = panel(.right, geometry(shifted: shifted)).keys
+            let comma = keys.first { $0.key.kind.label == "," }!
+            let period = keys.first { $0.key.kind.label == "." }!
+            // ⇧ で化けない。英数モードなので半角のまま。
+            XCTAssertEqual(comma.key.kind.output(for: .center), .insert(","))
+            XCTAssertEqual(period.key.kind.output(for: .center), .insert("."))
+        }
     }
 
     /// 段差は左パネルから右パネルへ続く。行が下がるごとに半キーずつ右へ。
@@ -94,7 +105,7 @@ final class LatinLayoutTests: XCTestCase {
         let space = panel(.right, g).keys.first { $0.key.kind == .space }!
         let newline = panel(.right, g).keys.first { $0.key.kind == .newline }!
         XCTAssertEqual(space.rect.width, g.keyWidth * 3 + g.gapX * 2, accuracy: 0.5)
-        XCTAssertEqual(newline.rect.width, g.keyWidth * 2 + g.gapX, accuracy: 0.5)
+        XCTAssertEqual(newline.rect.width, g.keyWidth * 3 + g.gapX * 2, accuracy: 0.5)
         // 最終行は左端から右端まできっちり埋まる。
         XCTAssertEqual(newline.rect.maxX, panel(.right, g).frame.width, accuracy: 0.5)
     }
@@ -171,12 +182,13 @@ final class LatinLayoutTests: XCTestCase {
         XCTAssertTrue(all.contains("g"))
         XCTAssertFalse(all.contains("あ"))
 
-        // 左右がひと続きになっている。q の行は 11列ぶん。
+        // 左右がひと続きになっている。q から p までで11列ぶん（左6＋右の YUIOP 5）。
         let q = g.panels[0].keys[0]
         let p = g.panels[0].keys.first { $0.key.kind == .latin("p") }!
         XCTAssertEqual(p.rect.maxX - q.rect.minX,
                        g.keyWidth * 11 + g.gapX * 10, accuracy: 0.5)
-        XCTAssertEqual(p.rect.maxX, g.panels[0].frame.width, accuracy: 0.5)
+        XCTAssertEqual(g.panels[0].frame.width,
+                       g.keyWidth * 12 + g.gapX * 11, accuracy: 0.5)
     }
 
     func testNarrowScreenKeysStayInsidePanel() {
