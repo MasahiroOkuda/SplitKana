@@ -45,11 +45,24 @@ public struct SplitKanaKeyboardView: View {
 
     @State private var fingers: [ObjectIdentifier: Finger] = [:]
 
-    /// ⌫ の長押しで走らせる連続削除。押している指ごとに1本だけ持つ。
-    @State private var repeating: (finger: ObjectIdentifier, task: Task<Void, Never>)?
-    /// 連続削除が1回でも走ったか。走ったなら離したときの1回を出さない
-    /// （押した時点の1回＋連続ぶん、で足りている）。
-    @State private var didRepeat = false
+    /// 押しっぱなしで走らせる連続入力。**キーボード全体で1本だけ。**
+    /// ⌫ を押しながらカーソルもフリックし続ける、という持ち方は無いので、
+    /// 後から始めたほうが前のを引き継ぐ。
+    private struct Repeating {
+        let finger: ObjectIdentifier
+        /// いま繰り返している出力。フリックの向きを変えるとこれが変わる。
+        let output: KeyOutput
+        let task: Task<Void, Never>
+    }
+
+    /// ⌫ の長押しと、カーソルキーのフリック維持で走る。
+    @State private var repeating: Repeating?
+    /// 連続入力が1回でも走った指。走ったなら離したときの1回を出さない
+    /// （連続ぶんで足りている）。
+    ///
+    /// **指ごとに持つ。**両手の親指が同時に動くので、1つの旗にすると
+    /// 片方の ⌫ 長押しがもう片方の打鍵を飲み込む。
+    @State private var didRepeat: Set<ObjectIdentifier> = []
 
     public init(
         geometry: KeyboardGeometry,
@@ -171,10 +184,10 @@ public struct SplitKanaKeyboardView: View {
         switch phase {
         case .began:
             guard let hit = geometry.hitTest(point) else { return }
-            fingers[id] = Finger(start: point, hit: hit, direction: .center)
-            if hit.key.kind == .backspace {
-                startRepeatingBackspace(for: id)
-            }
+            let finger = Finger(start: point, hit: hit, direction: .center)
+            fingers[id] = finger
+            didRepeat.remove(id)
+            syncRepeat(finger, for: id)
 
         case .moved:
             guard var finger = fingers[id] else { return }
@@ -184,45 +197,65 @@ public struct SplitKanaKeyboardView: View {
                 threshold: configuration.flickThreshold
             )
             fingers[id] = finger
+            // フリックの向きが変われば、繰り返す中身も変わる。
+            syncRepeat(finger, for: id)
 
         case .ended:
-            let repeated = stopRepeatingBackspace(for: id)
+            let repeated = stopRepeating(for: id)
             guard let finger = fingers.removeValue(forKey: id) else { return }
-            // 連続削除が走ったなら、離したときの1回は出さない。
+            // 連続入力が走ったなら、離したときの1回は出さない。
             guard !repeated else { return }
             emit(finger)
 
         case .cancelled:
-            _ = stopRepeatingBackspace(for: id)
+            _ = stopRepeating(for: id)
             fingers.removeValue(forKey: id)
         }
     }
 
-    /// ⌫ を押しっぱなしにしたら、少し待って連続削除を始める。
+    /// いまの指の状態に合わせて連続入力を張り直す。
+    private func syncRepeat(_ finger: Finger, for id: ObjectIdentifier) {
+        let output = finger.hit.key.kind.output(for: finger.direction)
+
+        guard output.repeatsWhileHeld else {
+            // ⌫ から指が外れた、フリックを中央へ戻した、など。
+            cancelRepeatTask(for: id)
+            return
+        }
+        // 同じものを繰り返している最中なら、間隔を仕切り直さない。
+        guard repeating?.finger != id || repeating?.output != output else { return }
+        startRepeating(output, for: id)
+    }
+
+    /// 少し待ってから繰り返しを始める。
     ///
-    /// 待たずに走らせると、1文字消すつもりの短い押下でも走り出してしまう。
-    private func startRepeatingBackspace(for id: ObjectIdentifier) {
+    /// 待たずに走らせると、1文字消すつもりの短い押下や、
+    /// 1つ動かすつもりのフリックでも走り出してしまう。
+    private func startRepeating(_ output: KeyOutput, for id: ObjectIdentifier) {
         repeating?.task.cancel()
-        didRepeat = false
         let task = Task { @MainActor in
             try? await Task.sleep(for: .seconds(SplitKanaTuning.repeatDelay))
             while !Task.isCancelled {
-                didRepeat = true
-                onOutput(.backspace)
+                didRepeat.insert(id)
+                onOutput(output)
                 try? await Task.sleep(for: .seconds(SplitKanaTuning.repeatInterval))
             }
         }
-        repeating = (id, task)
+        repeating = Repeating(finger: id, output: output, task: task)
     }
 
-    /// 連続削除を止める。**走っていたかどうかを返す。**
-    private func stopRepeatingBackspace(for id: ObjectIdentifier) -> Bool {
-        guard let repeating, repeating.finger == id else { return false }
+    /// 走っているものを止める。**`didRepeat` は消さない。**
+    /// 向きを変えただけのときに、走った事実まで消えると離したときの1回が余分に出る。
+    private func cancelRepeatTask(for id: ObjectIdentifier) {
+        guard let repeating, repeating.finger == id else { return }
         repeating.task.cancel()
         self.repeating = nil
-        let repeated = didRepeat
-        didRepeat = false
-        return repeated
+    }
+
+    /// 指を離した。連続入力を止め、**その指で走っていたかどうかを返す。**
+    private func stopRepeating(for id: ObjectIdentifier) -> Bool {
+        cancelRepeatTask(for: id)
+        return didRepeat.remove(id) != nil
     }
 
     private func emit(_ finger: Finger) {
