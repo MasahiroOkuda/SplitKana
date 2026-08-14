@@ -49,10 +49,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1B6A413A554903AA0E9440FF /* SplitKanaHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SplitKanaHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B6A413A554903AA0E9440FF /* SplitKanaHost.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SplitKanaHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C6824055C165B15F9AFE8A5 /* KeyboardSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSettings.swift; sourceTree = "<group>"; };
 		2D20E91FED827B1682CAEF29 /* SettingsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanelView.swift; sourceTree = "<group>"; };
-		3848DB21C3E658FF6C3D8DDB /* SplitKanaKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SplitKanaKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3848DB21C3E658FF6C3D8DDB /* SplitKanaKeyboard.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SplitKanaKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4589F34E0A7B86C0C75324A7 /* TypingStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypingStats.swift; sourceTree = "<group>"; };
 		81C926A5CA68A365E5B40A12 /* HostRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostRootView.swift; sourceTree = "<group>"; };
 		9A7BFD5482D4AA74A0E6DB2A /* SplitKanaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SplitKanaKit; path = Packages/SplitKanaKit; sourceTree = SOURCE_ROOT; };
@@ -194,9 +194,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3B49017F3EDDC96B9FFF0DF0 = {
+						DevelopmentTeam = XJ28ZGLVWC;
 						ProvisioningStyle = Automatic;
 					};
 					6297AA10916B744CD444FE19 = {
+						DevelopmentTeam = XJ28ZGLVWC;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -332,7 +334,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = PPB74JD3JG;
+				DEVELOPMENT_TEAM = XJ28ZGLVWC;
 				INFOPLIST_FILE = "Generated/SplitKanaHost-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -350,7 +352,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = PPB74JD3JG;
+				DEVELOPMENT_TEAM = XJ28ZGLVWC;
 				INFOPLIST_FILE = "Generated/SplitKanaKeyboard-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -371,7 +373,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = PPB74JD3JG;
+				DEVELOPMENT_TEAM = XJ28ZGLVWC;
 				INFOPLIST_FILE = "Generated/SplitKanaHost-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -389,7 +391,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = PPB74JD3JG;
+				DEVELOPMENT_TEAM = XJ28ZGLVWC;
 				INFOPLIST_FILE = "Generated/SplitKanaKeyboard-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
