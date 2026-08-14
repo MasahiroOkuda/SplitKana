@@ -2,10 +2,19 @@ import XCTest
 @testable import SplitKanaCore
 
 /// 決め打ちの変換器。読みごとに返す候補を固定しておく。
-struct FakeConverter: KanaKanjiConverting {
+final class FakeConverter: KanaKanjiConverting {
     var table: [String: [String]] = [:]
+    /// 候補引きの呼び出し回数。純粋な fake では引き直しと初回呼び出しを区別できないので、
+    /// 明示的にカウントして検証する（テスト: testCandidateMovementDoesNotRequeryTheConverter）。
+    private(set) var callCount = 0
+
+    init(table: [String: [String]] = [:]) {
+        self.table = table
+    }
+
     func candidates(for reading: String) -> [String] {
-        table[reading] ?? []
+        callCount += 1
+        return table[reading] ?? []
     }
 }
 
@@ -14,7 +23,8 @@ final class ConversionControllerTests: XCTestCase {
     private func controller(
         _ table: [String: [String]] = ["か": ["下", "課"], "かん": ["感", "缶", "巻"]]
     ) -> ConversionController {
-        ConversionController(converter: FakeConverter(table: table))
+        let converter = FakeConverter(table: table)
+        return ConversionController(converter: converter)
     }
 
     func testKanaBuildsTheReadingAndShowsMarkedText() {
@@ -95,12 +105,17 @@ final class ConversionControllerTests: XCTestCase {
     }
 
     func testCandidateMovementDoesNotRequeryTheConverter() {
-        var c = controller()
+        let converter = FakeConverter(table: ["か": ["下", "課"], "かん": ["感", "缶", "巻"]])
+        var c = ConversionController(converter: converter)
         _ = c.handle(.insert("か"))
         _ = c.handle(.insert("ん"))
-        let before = c.session.candidates
+        let callCountAfterBuilding = converter.callCount
         _ = c.handle(.space)
-        XCTAssertEqual(c.session.candidates, before, "候補送りで引き直してはいけない")
+        let callCountAfterSpace = converter.callCount
+        _ = c.handle(.candidate(-1))
+        let callCountAfterCandidate = converter.callCount
+        XCTAssertEqual(callCountAfterSpace, callCountAfterBuilding, "候補送りで引き直してはいけない")
+        XCTAssertEqual(callCountAfterCandidate, callCountAfterBuilding, "逆送りでも引き直してはいけない")
     }
 
     func testSpaceWhenNotComposingPassesThrough() {
