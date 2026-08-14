@@ -67,6 +67,7 @@ final class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         clearInputAssistant()
+        makeBackgroundTransparent()
         // SPEC 10: 起動が遅いと体感が悪い。ここでは載せるだけで、重い処理をしない。
         installKeyboard()
     }
@@ -78,6 +79,19 @@ final class KeyboardViewController: UIInputViewController {
     private func clearInputAssistant() {
         inputAssistantItem.leadingBarButtonGroups = []
         inputAssistantItem.trailingBarButtonGroups = []
+    }
+
+    /// 中央の空きから自分の描画物を全部どけて、下が見えるか試す。
+    ///
+    /// **SPEC 4 は「背景を透明にできない。下のアプリは見えないし触れない」としている。**
+    /// 系がキーボードの矩形の裏に不透明な板を敷くためで、それは外から外せない。
+    /// ただし自分側が塗っているぶんは外せるので、そこまではやっておく。
+    ///
+    /// **触れないほうは動かしようがない。**キーボードの矩形に来たタッチは
+    /// 系がこちらへ配るので、下のアプリには届かない。見えたとしても押せはしない。
+    private func makeBackgroundTransparent() {
+        view.backgroundColor = .clear
+        inputView?.backgroundColor = .clear
     }
 
     override func viewWillLayoutSubviews() {

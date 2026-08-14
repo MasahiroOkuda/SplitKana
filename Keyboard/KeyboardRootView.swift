@@ -73,16 +73,15 @@ struct KeyboardRootView: View {
         if isShowingSettings {
             return geometry.isSplit ? .panels : .none
         }
-        // 候補欄を出している間は中央を空ける。
-        // タッチ板は本物の `UIView` なので、全面に敷いたままだと
-        // 上に重ねた候補欄がタップを受け取れない。
+        // **分割時は中央にタッチ板を敷かない。**理由が2つある。
         //
-        // 統合レイアウト（iPhone 縦）は中央の空きが無く、候補欄がキーに重なる。
-        // そこで中央を空けるとキーが死ぬので、あちらはタップ不可のまま据え置く。
-        if session.isComposing, geometry.isSplit {
-            return .panels
-        }
-        return .container
+        // 1. 候補欄のタップを受け取れるようにするため。タッチ板は本物の `UIView` で、
+        //    全面に敷いたままだと上に重ねた候補欄が押せない
+        // 2. 中央から自分の描画物をなくして、下が見えるか試すため。
+        //    タッチ板はごく薄いとはいえ色を敷いている（透明だと配送されないため）
+        //
+        // 統合レイアウト（iPhone 縦）には中央の空きが無いので、全面のままでよい。
+        return geometry.isSplit ? .panels : .container
     }
 
     /// パネルを置く矩形。
