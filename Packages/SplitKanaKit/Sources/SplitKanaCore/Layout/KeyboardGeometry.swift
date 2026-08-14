@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 public struct SafeAreaInsets: Equatable, Sendable {
     public var leading: CGFloat
@@ -169,15 +172,23 @@ public extension KeyboardGeometry {
 
 public extension KeyboardGeometry {
 
+    /// - Parameter deviceClass: 端末クラスを外から指定する。`nil` ならコンテナの縦横比から判定する。
+    ///
+    ///   **キーボード拡張は必ず指定すること。**拡張のコンテナは「横長で背の低い帯」なので、
+    ///   縦横比から向きを判定すると iPhone 横を「縦」と取り違える。
+    ///   拡張は画面の向きを知っているので、そちらを渡す。
     static func make(
         containerSize: CGSize,
         safeArea: SafeAreaInsets = .zero,
         isPad: Bool,
-        configuration: KeyboardConfiguration
+        configuration: KeyboardConfiguration,
+        deviceClass: DeviceClass? = nil
     ) -> KeyboardGeometry {
 
-        let deviceClass = DeviceClass.resolve(containerSize: containerSize, isPad: isPad)
-        let base = deviceClass.baseMetrics
+        let deviceClass = deviceClass
+            ?? DeviceClass.resolve(containerSize: containerSize, isPad: isPad)
+        // 設定で上書きできるもの（左右位置・上の余白）はここで差し替えておく。
+        let base = deviceClass.baseMetrics.applying(configuration)
         let bottomInset = configuration.bottomInset ?? base.bottomInset
         let requestedScale = configuration.clampedScale
 
@@ -198,9 +209,17 @@ public extension KeyboardGeometry {
             let widthScale = unitWidth > 0
                 ? (usableWidth - SplitKanaTuning.minimumCenterGap) / unitWidth
                 : requestedScale
-            let scale = min(requestedScale, widthScale, heightScale)
 
-            if scale >= SplitKanaTuning.minimumSplitScale {
+            // 分割できるかは**横方向の余地だけ**で決める。
+            //
+            // - ユーザーが小さめの倍率を選んだことは、分割をやめる理由にならない
+            //   （requestedScale を混ぜると、小さくしたいだけなのに統合レイアウトへ落ちる）
+            // - 高さも理由にならない。分割も統合も4行で、必要な高さは同じ
+            //   （heightScale を混ぜると、コンテナをキーボード高ぴったりにしたとき
+            //   heightScale が適用倍率そのものに縮み、判定がしきい値の上で揺れる。
+            //   キーボード拡張は自分の高さを自分で決めるので、これが実際に起きる）
+            if widthScale >= SplitKanaTuning.minimumSplitScale {
+                let scale = min(requestedScale, widthScale, heightScale)
                 return splitGeometry(
                     containerSize: containerSize,
                     safeArea: safeArea,

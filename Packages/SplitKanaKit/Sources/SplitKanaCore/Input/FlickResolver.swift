@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// 実機で調整が要る定数（SPEC 2.3 / 10 / 11）。散らさずここに集める。
 public enum SplitKanaTuning {

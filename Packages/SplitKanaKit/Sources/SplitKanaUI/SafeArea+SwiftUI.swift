@@ -10,6 +10,14 @@ public extension SafeAreaInsets {
     init(_ insets: EdgeInsets) {
         self.init(leading: insets.leading, trailing: insets.trailing, bottom: insets.bottom)
     }
+
+    #if canImport(UIKit)
+    /// `UIInputViewController` 側から渡す用。
+    /// `PrefersRightToLeft = false`（SPEC 4）なので left/right をそのまま leading/trailing に対応させる。
+    init(_ insets: UIEdgeInsets) {
+        self.init(leading: insets.left, trailing: insets.right, bottom: insets.bottom)
+    }
+    #endif
 }
 
 public enum DeviceIdiom {

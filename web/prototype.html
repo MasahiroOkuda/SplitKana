@@ -158,7 +158,7 @@ html, body {
     <div id="settings" hidden>
       <div class="row">
         <label>大きさ</label>
-        <input type="range" id="s-scale" min="0.80" max="1.45" step="0.01">
+        <input type="range" id="s-scale" min="0.60" max="1.45" step="0.01">
         <div class="val" id="v-scale"></div>
       </div>
       <div class="row">
@@ -271,7 +271,8 @@ const COLUMN = {
 
 /* ---------------------------------------------------------------- 設定 */
 
-const DEFAULTS = { scale: 1.10, bottomInset: null, threshold: 18, dup: true, device: "auto" };
+/* scale と bottomInset は実測で確定した値（SPEC 11）。Swift 側 KeyboardConfiguration と揃える。 */
+const DEFAULTS = { scale: 0.80, bottomInset: 0, threshold: 18, dup: true, device: "auto" };
 let cfg = Object.assign({}, DEFAULTS);
 try {
   const saved = JSON.parse(localStorage.getItem("splitkana.cfg") || "null");
@@ -327,7 +328,7 @@ function computeLayout(W, H) {
   const dev = resolveDevice(W, H);
   const base = BASE[dev];
   const bottomInset = (cfg.bottomInset === null) ? base.bottom : cfg.bottomInset;
-  const scaleReq = Math.min(Math.max(cfg.scale, 0.80), 1.45);
+  const scaleReq = Math.min(Math.max(cfg.scale, 0.60), 1.45);
 
   const usableW = W - sa.leading - sa.trailing - base.side * 2;
   const usableH = H - sa.bottom - bottomInset - base.top;
@@ -340,8 +341,10 @@ function computeLayout(W, H) {
   if (attemptsSplit) {
     const unitW = base.kw * (2 + rightCols) + base.gx * rightCols;
     const wScale = unitW > 0 ? (usableW - TUNING.minimumCenterGap) / unitW : scaleReq;
-    const scale = Math.min(scaleReq, wScale, hScale);
-    if (scale >= TUNING.minimumSplitScale) {
+    // 分割できるかは「画面に収まるか」だけで決める（Swift 側 KeyboardGeometry.make と同じ）。
+    const fitScale = Math.min(wScale, hScale);
+    if (fitScale >= TUNING.minimumSplitScale) {
+      const scale = Math.min(scaleReq, fitScale);
       const kw = base.kw * scale, kh = base.kh * scale;
       const gx = base.gx * scale, gy = base.gy * scale;
       const panelH = kh * 4 + gy * 3;

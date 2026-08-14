@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// 当たったキーと、それが属するパネル。
 public struct KeyHit: Equatable, Sendable {

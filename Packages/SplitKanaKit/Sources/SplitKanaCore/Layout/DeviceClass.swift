@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// 端末別の初期値（SPEC 3.2）。
 ///
@@ -14,6 +17,22 @@ public struct BaseMetrics: Sendable {
     public let topPadding: CGFloat
     /// 下端からの浮かせ量の既定値
     public let bottomInset: CGFloat
+
+    /// 設定で上書きできるものを差し替えた寸法。
+    ///
+    /// 上書きは `nil` なら端末別の既定値のまま。こうしておくと、
+    /// 計算側は「既定値か設定値か」を気にせず `base` を読むだけで済む。
+    func applying(_ configuration: KeyboardConfiguration) -> BaseMetrics {
+        BaseMetrics(
+            keyWidth: keyWidth,
+            keyHeight: keyHeight,
+            gapX: gapX,
+            gapY: gapY,
+            sideInset: configuration.sideInset ?? sideInset,
+            topPadding: configuration.topPadding ?? topPadding,
+            bottomInset: bottomInset
+        )
+    }
 }
 
 public enum DeviceClass: String, Sendable {

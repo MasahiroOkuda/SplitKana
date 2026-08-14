@@ -1,0 +1,99 @@
+name: SplitKana
+options:
+  bundleIdPrefix: com.splitkana
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  SplitKanaKit:
+    path: Packages/SplitKanaKit
+
+targets:
+  SplitKanaHost:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: App/SplitKanaHost
+    dependencies:
+      - package: SplitKanaKit
+        product: SplitKanaCore
+      - package: SplitKanaKit
+        product: SplitKanaUI
+      # 拡張は単体で配布できない。必ず本体に同梱する（SPEC 8）。
+      - target: SplitKanaKeyboard
+        embed: true
+    info:
+      path: Generated/SplitKanaHost-Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.splitkana.host
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: XJ28ZGLVWC
+
+  # キーボード拡張（SPEC 7 フェーズ2）。
+  # Bundle ID は必ず親アプリの Bundle ID + サフィックスにする。
+  SplitKanaKeyboard:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Keyboard
+    dependencies:
+      - package: SplitKanaKit
+        product: SplitKanaCore
+      - package: SplitKanaKit
+        product: SplitKanaUI
+    info:
+      path: Generated/SplitKanaKeyboard-Info.plist
+      properties:
+        # 空だとインストール自体が拒否される。設定 → キーボード に出る名前でもある。
+        CFBundleDisplayName: 分割かな
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            PrimaryLanguage: ja-JP
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            # 触覚と App Group はフルアクセスが要るので当面 false（SPEC 4）。
+            RequestsOpenAccess: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.splitkana.host.keyboard
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: XJ28ZGLVWC
+
+# スキームは共有保存しておく。
+# 定義しないと Xcode が各ターゲットぶんを勝手に作り、xcodegen generate のたびに
+# 選択がリセットされる。拡張のスキームが選ばれていると ⌘R が
+# 「Choose an app to run」になって起動できない。
+schemes:
+  SplitKanaHost:
+    build:
+      targets:
+        SplitKanaHost: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
