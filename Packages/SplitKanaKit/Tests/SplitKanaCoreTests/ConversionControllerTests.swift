@@ -48,6 +48,78 @@ final class ConversionControllerTests: XCTestCase {
         XCTAssertEqual(effects, [.markedText("かん")])
     }
 
+    // MARK: - 学習への通知
+
+    /// 何を学習に渡したかを記録するだけの変換器。
+    final class SpyConverter: KanaKanjiConverting {
+        var table: [String: [String]] = [:]
+        private(set) var learned: [(committed: String, reading: String)] = []
+        private(set) var persistCount = 0
+
+        init(table: [String: [String]]) { self.table = table }
+
+        func candidates(for reading: String) -> [String] { table[reading] ?? [] }
+
+        func learn(_ committed: String, for reading: String) {
+            learned.append((committed, reading))
+        }
+
+        func persistLearning() { persistCount += 1 }
+    }
+
+    func testConfirmingWithTheEnterKeyNotifiesLearning() {
+        let spy = SpyConverter(table: ["かん": ["感", "缶"]])
+        var c = ConversionController(converter: spy)
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        _ = c.handle(.space)                    // 感
+        _ = c.handle(.newline)
+
+        XCTAssertEqual(spy.learned.count, 1)
+        XCTAssertEqual(spy.learned.first?.committed, "感")
+        XCTAssertEqual(spy.learned.first?.reading, "かん", "読みも一緒に渡す")
+    }
+
+    /// **タップ確定でも同じように学習が走る。**経路が分かれていない証拠。
+    func testConfirmingByTapNotifiesLearning() {
+        let spy = SpyConverter(table: ["かん": ["感", "缶"]])
+        var c = ConversionController(converter: spy)
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        _ = c.commitCandidate(at: 2)            // ["かん", "感", "缶"] の 缶
+
+        XCTAssertEqual(spy.learned.count, 1)
+        XCTAssertEqual(spy.learned.first?.committed, "缶")
+        XCTAssertEqual(spy.learned.first?.reading, "かん")
+    }
+
+    /// カーソル移動や 🌐 での暗黙の確定も学習に乗る。
+    func testImplicitCommitNotifiesLearning() {
+        let spy = SpyConverter(table: ["か": ["下"]])
+        var c = ConversionController(converter: spy)
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.cursor(-1))
+        XCTAssertEqual(spy.learned.map(\.committed), ["か"])
+    }
+
+    /// 確定していないなら何も学習しない。
+    func testNoLearningWithoutConfirmation() {
+        let spy = SpyConverter(table: ["かん": ["感"]])
+        var c = ConversionController(converter: spy)
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        _ = c.handle(.space)
+        _ = c.handle(.backspace)
+        XCTAssertTrue(spy.learned.isEmpty)
+    }
+
+    func testPersistLearningIsForwarded() {
+        let spy = SpyConverter(table: [:])
+        let c = ConversionController(converter: spy)
+        c.persistLearning()
+        XCTAssertEqual(spy.persistCount, 1)
+    }
+
     // MARK: - 候補のタップ確定
 
     /// タップは選択して止まるのではなく、その場で確定する。
