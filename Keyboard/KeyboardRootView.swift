@@ -21,6 +21,8 @@ struct KeyboardRootView: View {
     let isShowingSettings: Bool
     let session: ConversionSession
     let onOutput: (KeyOutput) -> Void
+    /// 候補欄がタップされた。その候補で確定する。
+    let onSelectCandidate: (Int) -> Void
     /// 設定が変わった。呼び出し側が読み直して再レイアウトする。
     let onSettingsChanged: () -> Void
     let onCloseSettings: () -> Void
@@ -37,7 +39,11 @@ struct KeyboardRootView: View {
 
                 // 設定パネルとは排他。⚙ を開いている間は候補を出さない。
                 if session.isComposing, !isShowingSettings {
-                    CandidateBarView(session: session, region: candidateRegion(for: geometry))
+                    CandidateBarView(
+                        session: session,
+                        region: candidateRegion(for: geometry),
+                        onSelect: onSelectCandidate
+                    )
                 }
 
                 if isShowingSettings {
@@ -64,8 +70,19 @@ struct KeyboardRootView: View {
     /// - 統合時（iPhone 縦）：中央の空きが無く、パネルがキーに重なる。
     ///   タッチ板は本物の `UIView` なので、重ねただけでは触らせられない。降ろす
     private func touchArea(for geometry: KeyboardGeometry) -> SplitKanaKeyboardView.TouchArea {
-        guard isShowingSettings else { return .container }
-        return geometry.isSplit ? .panels : .none
+        if isShowingSettings {
+            return geometry.isSplit ? .panels : .none
+        }
+        // 候補欄を出している間は中央を空ける。
+        // タッチ板は本物の `UIView` なので、全面に敷いたままだと
+        // 上に重ねた候補欄がタップを受け取れない。
+        //
+        // 統合レイアウト（iPhone 縦）は中央の空きが無く、候補欄がキーに重なる。
+        // そこで中央を空けるとキーが死ぬので、あちらはタップ不可のまま据え置く。
+        if session.isComposing, geometry.isSplit {
+            return .panels
+        }
+        return .container
     }
 
     /// パネルを置く矩形。

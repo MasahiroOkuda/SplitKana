@@ -50,29 +50,6 @@ extension ConversionSessionTests {
         XCTAssertEqual(session.position?.index, 1)
         XCTAssertEqual(session.position?.total, 1)
     }
-
-    func testNeighboursAreNilAtTheEnds() {
-        let first = ConversionSession(reading: "かん", candidates: ["感", "缶", "巻"], selection: 0)
-        XCTAssertNil(first.previousCandidate, "先頭の前には何も出さない")
-        XCTAssertEqual(first.nextCandidate, "缶")
-
-        let last = ConversionSession(reading: "かん", candidates: ["感", "缶", "巻"], selection: 2)
-        XCTAssertEqual(last.previousCandidate, "缶")
-        XCTAssertNil(last.nextCandidate, "末尾の後ろには何も出さない")
-    }
-
-    func testNeighboursInTheMiddle() {
-        let session = ConversionSession(reading: "かん", candidates: ["感", "缶", "巻"], selection: 1)
-        XCTAssertEqual(session.previousCandidate, "感")
-        XCTAssertEqual(session.nextCandidate, "巻")
-    }
-
-    /// 候補が1件だけなら、どちらにも予告は出ない。
-    func testSingleCandidateHasNoNeighbours() {
-        let session = ConversionSession(reading: "ぬ", candidates: ["ぬ"], selection: 0)
-        XCTAssertNil(session.previousCandidate)
-        XCTAssertNil(session.nextCandidate)
-    }
 }
 
 /// **読みを見失わないことの確認。**

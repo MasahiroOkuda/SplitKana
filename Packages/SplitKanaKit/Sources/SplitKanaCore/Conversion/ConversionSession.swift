@@ -47,25 +47,5 @@ public struct ConversionSession: Equatable, Sendable {
         return (clamped + 1, all.count)
     }
 
-    /// ひとつ前の候補。**先頭にいるなら nil。**
-    ///
-    /// 「次に何が来るか」の予告なので、無い方向には何も出さない。
-    public var previousCandidate: String? {
-        neighbour(offset: -1)
-    }
-
-    /// ひとつ後ろの候補。**末尾にいるなら nil。**
-    public var nextCandidate: String? {
-        neighbour(offset: 1)
-    }
-
-    private func neighbour(offset: Int) -> String? {
-        let all = displayCandidates
-        guard all.indices.contains(selection) else { return nil }
-        let index = selection + offset
-        guard all.indices.contains(index) else { return nil }
-        return all[index]
-    }
-
     public static let empty = ConversionSession()
 }

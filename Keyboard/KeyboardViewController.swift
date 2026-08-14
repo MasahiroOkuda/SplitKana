@@ -95,6 +95,7 @@ final class KeyboardViewController: UIInputViewController {
             isShowingSettings: isShowingSettings,
             session: conversionSession,
             onOutput: { [weak self] output in self?.handle(output) },
+            onSelectCandidate: { [weak self] index in self?.commitCandidate(at: index) },
             onSettingsChanged: { [weak self] in self?.reloadSettings() },
             onCloseSettings: { [weak self] in
                 self?.isShowingSettings = false
@@ -205,11 +206,22 @@ final class KeyboardViewController: UIInputViewController {
         let effects = controller.handle(output)
         conversion = controller
 
+        apply(effects)
+
+        // 候補の表示を更新する。
+        refreshRootView()
+    }
+
+    /// 変換が出した効果を proxy に落とす。
+    ///
+    /// キーからの入力もタップ確定もここを通る。**確定の経路は1つに保つ。**
+    private func apply(_ effects: [ConversionEffect]) {
         for effect in effects {
             switch effect {
             case .markedText(let text):
                 textDocumentProxy.setMarkedText(
                     text, selectedRange: NSRange(location: text.utf16.count, length: 0))
+
             case .commit(let text):
                 // unmarkText() は未確定を捨てるのではなく確定させる。
                 // 先に空にしておかないと、この直後の insertText と合わせて二重に入る。
@@ -223,9 +235,6 @@ final class KeyboardViewController: UIInputViewController {
                 apply(output)
             }
         }
-
-        // 候補の表示を更新する。
-        refreshRootView()
     }
 
     /// 未確定表示を消す。
@@ -234,6 +243,19 @@ final class KeyboardViewController: UIInputViewController {
     private func clearMarkedText() {
         textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
         textDocumentProxy.unmarkText()
+    }
+
+    /// 候補欄がタップされた。その候補で確定する。
+    ///
+    /// **キーで確定したときと同じ経路を通す。**確定の扱いが二通りあると、
+    /// 学習や後処理を足したときに片方だけ漏れる。
+    private func commitCandidate(at index: Int) {
+        guard var controller = conversion else { return }
+        let effects = controller.commitCandidate(at: index)
+        conversion = controller
+        guard !effects.isEmpty else { return }
+        apply(effects)
+        refreshRootView()
     }
 
     /// 変換に関係ない出力を proxy に流す。

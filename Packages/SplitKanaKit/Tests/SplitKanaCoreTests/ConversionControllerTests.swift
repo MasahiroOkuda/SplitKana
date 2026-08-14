@@ -48,6 +48,57 @@ final class ConversionControllerTests: XCTestCase {
         XCTAssertEqual(effects, [.markedText("かん")])
     }
 
+    // MARK: - 候補のタップ確定
+
+    /// タップは選択して止まるのではなく、その場で確定する。
+    func testTappingACandidateCommitsItImmediately() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        let effects = c.commitCandidate(at: 2)          // ["かん", "感", "缶", "巻"]
+        XCTAssertEqual(effects, [.commit("缶")])
+        XCTAssertFalse(c.session.isComposing, "確定したらセッションは空になる")
+    }
+
+    /// 無変換（先頭）もタップで確定できる。
+    func testTappingTheUnconvertedReadingCommitsIt() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        _ = c.handle(.insert("ん"))
+        XCTAssertEqual(c.commitCandidate(at: 0), [.commit("かん")])
+    }
+
+    /// **キーでの確定と同じ結果になること。**確定の経路が分かれていると、
+    /// 学習や後処理を足したときに片方だけ漏れる。
+    func testTapAndKeyConfirmationAgree() {
+        var tapped = controller()
+        _ = tapped.handle(.insert("か"))
+        _ = tapped.handle(.insert("ん"))
+        let byTap = tapped.commitCandidate(at: 1)
+
+        var keyed = controller()
+        _ = keyed.handle(.insert("か"))
+        _ = keyed.handle(.insert("ん"))
+        _ = keyed.handle(.space)                        // 選択を 1 へ
+        let byKey = keyed.handle(.newline)
+
+        XCTAssertEqual(byTap, byKey)
+        XCTAssertEqual(tapped.session, keyed.session)
+    }
+
+    /// 表示と状態がずれた瞬間にタップが来ても壊れない。
+    func testTappingOutOfRangeIsIgnored() {
+        var c = controller()
+        _ = c.handle(.insert("か"))
+        XCTAssertEqual(c.commitCandidate(at: 99), [])
+        XCTAssertTrue(c.session.isComposing, "無視するだけ。読みは残る")
+    }
+
+    func testTappingWhenNotComposingIsIgnored() {
+        var c = controller()
+        XCTAssertEqual(c.commitCandidate(at: 0), [])
+    }
+
     // MARK: - 第1候補は必ず無変換
 
     /// **打っている最中に勝手に漢字へ化けない。**
