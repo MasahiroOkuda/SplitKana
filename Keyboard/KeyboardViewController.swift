@@ -75,6 +75,13 @@ final class KeyboardViewController: UIInputViewController {
         updateHeightIfNeeded()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // キーボードが降りると未確定表示は系に残らない。
+        // セッションだけ生き残ると、次の打鍵が宙に浮いた marked text を書きに行く。
+        conversion?.session = .empty
+    }
+
     // MARK: - 組み立て
 
     private func makeRootView(
@@ -180,6 +187,20 @@ final class KeyboardViewController: UIInputViewController {
 
     /// キーボードからの出力。まず変換に通し、出てきた効果を proxy に落とす。
     private func handle(_ output: KeyOutput) {
+        // 変換を切れるようにしてあるのは保険。Mac を返した後で変換が重い・
+        // 感触が悪いと分かっても、ここで切れば素のかな入力に戻せる。
+        // **`ensureConversion()` を通さない。**辞書を読み込ませないことが目的なので。
+        guard KeyboardSettings.conversionEnabled(currentDeviceClass) else {
+            // 変換中に切られた場合、未確定表示が取り残されるので先に消す。
+            if conversion?.session.isComposing == true {
+                clearMarkedText()
+                conversion?.session = .empty
+            }
+            apply(output)
+            refreshRootView()
+            return
+        }
+
         var controller = ensureConversion()
         let effects = controller.handle(output)
         conversion = controller
@@ -190,10 +211,14 @@ final class KeyboardViewController: UIInputViewController {
                 textDocumentProxy.setMarkedText(
                     text, selectedRange: NSRange(location: text.utf16.count, length: 0))
             case .commit(let text):
-                textDocumentProxy.unmarkText()
+                // unmarkText() は未確定を捨てるのではなく確定させる。
+                // 先に空にしておかないと、この直後の insertText と合わせて二重に入る。
+                clearMarkedText()
                 textDocumentProxy.insertText(text)
+
             case .clear:
-                textDocumentProxy.unmarkText()
+                clearMarkedText()
+
             case .passthrough(let output):
                 apply(output)
             }
@@ -201,6 +226,14 @@ final class KeyboardViewController: UIInputViewController {
 
         // 候補の表示を更新する。
         refreshRootView()
+    }
+
+    /// 未確定表示を消す。
+    ///
+    /// `unmarkText()` だけでは**確定してしまう**ので、先に空文字で置き換える。
+    private func clearMarkedText() {
+        textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
+        textDocumentProxy.unmarkText()
     }
 
     /// 変換に関係ない出力を proxy に流す。

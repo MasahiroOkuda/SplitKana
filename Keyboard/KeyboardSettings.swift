@@ -105,6 +105,19 @@ enum KeyboardSettings {
         return defaults.bool(forKey: key)
     }
 
+    /// かな漢字変換を使うか。既定は入り（true）。
+    ///
+    /// **切れるようにしてあるのは保険。**変換が重い・感触が合わないと分かっても
+    /// Mac を返した後では作り直せないので、その場で素のかな入力に戻せる逃げ道を残す。
+    static func conversionEnabled(
+        _ deviceClass: DeviceClass,
+        _ defaults: UserDefaults = .standard
+    ) -> Bool {
+        let key = key("conversionEnabled", deviceClass)
+        guard defaults.object(forKey: key) != nil else { return true }
+        return defaults.bool(forKey: key)
+    }
+
     // MARK: - 書き
 
     static func save(
@@ -124,12 +137,21 @@ enum KeyboardSettings {
         defaults.set(shows, forKey: key("showsDuplicateColumn", deviceClass))
     }
 
+    static func saveConversionEnabled(
+        _ enabled: Bool,
+        for deviceClass: DeviceClass,
+        to defaults: UserDefaults = .standard
+    ) {
+        defaults.set(enabled, forKey: key("conversionEnabled", deviceClass))
+    }
+
     /// この端末クラスぶんだけ既定値に戻す。他の端末クラスの調整は消さない。
     static func reset(for deviceClass: DeviceClass, in defaults: UserDefaults = .standard) {
         for field in Field.allCases {
             defaults.removeObject(forKey: key(field.rawValue, deviceClass))
         }
         defaults.removeObject(forKey: key("showsDuplicateColumn", deviceClass))
+        defaults.removeObject(forKey: key("conversionEnabled", deviceClass))
     }
 
     // MARK: -
