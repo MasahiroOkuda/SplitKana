@@ -7,6 +7,9 @@ options:
 packages:
   SplitKanaKit:
     path: Packages/SplitKanaKit
+  AzooKeyKanaKanjiConverter:
+    url: https://github.com/ensan-hcl/AzooKeyKanaKanjiConverter
+    exactVersion: 0.9.0
 
 targets:
   SplitKanaHost:
@@ -58,6 +61,8 @@ targets:
         product: SplitKanaCore
       - package: SplitKanaKit
         product: SplitKanaUI
+      - package: AzooKeyKanaKanjiConverter
+        product: KanaKanjiConverterModuleWithDefaultDictionary
     info:
       path: Generated/SplitKanaKeyboard-Info.plist
       properties:

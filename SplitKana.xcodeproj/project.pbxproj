@@ -11,7 +11,9 @@
 		023E4781DE848451E1B214F1 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E733CAE3F906DD2F8F2A40 /* TranscriptView.swift */; };
 		0DD51F614337E0F6ACAC192B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EAC81CFE26419FB979E6A319 /* Assets.xcassets */; };
 		13CCC4F4E749629031C79CD2 /* SplitKanaHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB3FE65D762100FA6F24C49 /* SplitKanaHostApp.swift */; };
+		2A09925FC8B1FB955558CC9A /* AzooKeyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A990EDF32693F5037EFDC757 /* AzooKeyConverter.swift */; };
 		2DC82B51672ED705F4FB9FBF /* SplitKanaCore in Frameworks */ = {isa = PBXBuildFile; productRef = C08E12C445BEA0BDDAEE7612 /* SplitKanaCore */; };
+		3753FFDC04B85480D1317441 /* KanaKanjiConverterModuleWithDefaultDictionary in Frameworks */ = {isa = PBXBuildFile; productRef = 2FA0241F74F42A62A67B1D94 /* KanaKanjiConverterModuleWithDefaultDictionary */; };
 		39224D4442707AAC6ADACE8E /* SplitKanaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 7D5CDC03599E9D4C89BAB656 /* SplitKanaUI */; };
 		3C625230AC86F5A6515C9B8C /* KeyboardRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9150849805CD7EBC14DEE86 /* KeyboardRootView.swift */; };
 		484ABB2F1CBB3D8801C0B3D3 /* TypingStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4589F34E0A7B86C0C75324A7 /* TypingStats.swift */; };
@@ -57,6 +59,7 @@
 		81C926A5CA68A365E5B40A12 /* HostRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostRootView.swift; sourceTree = "<group>"; };
 		9A7BFD5482D4AA74A0E6DB2A /* SplitKanaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SplitKanaKit; path = Packages/SplitKanaKit; sourceTree = SOURCE_ROOT; };
 		A9150849805CD7EBC14DEE86 /* KeyboardRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRootView.swift; sourceTree = "<group>"; };
+		A990EDF32693F5037EFDC757 /* AzooKeyConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AzooKeyConverter.swift; sourceTree = "<group>"; };
 		AB2DF7DD6AFC75669790B015 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		D7E733CAE3F906DD2F8F2A40 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
 		E233394A5D750E89F3847820 /* KeyboardSettingsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSettingsPanel.swift; sourceTree = "<group>"; };
@@ -71,6 +74,7 @@
 			files = (
 				A32A448617A704B5E29A71EB /* SplitKanaCore in Frameworks */,
 				39224D4442707AAC6ADACE8E /* SplitKanaUI in Frameworks */,
+				3753FFDC04B85480D1317441 /* KanaKanjiConverterModuleWithDefaultDictionary in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -97,6 +101,7 @@
 		36501BB41B0E86FDCBB54773 /* Keyboard */ = {
 			isa = PBXGroup;
 			children = (
+				A990EDF32693F5037EFDC757 /* AzooKeyConverter.swift */,
 				A9150849805CD7EBC14DEE86 /* KeyboardRootView.swift */,
 				1C6824055C165B15F9AFE8A5 /* KeyboardSettings.swift */,
 				E233394A5D750E89F3847820 /* KeyboardSettingsPanel.swift */,
@@ -156,6 +161,7 @@
 			packageProductDependencies = (
 				7B3D67B3FB5FB6641171A551 /* SplitKanaCore */,
 				7D5CDC03599E9D4C89BAB656 /* SplitKanaUI */,
+				2FA0241F74F42A62A67B1D94 /* KanaKanjiConverterModuleWithDefaultDictionary */,
 			);
 			productName = SplitKanaKeyboard;
 			productReference = 3848DB21C3E658FF6C3D8DDB /* SplitKanaKeyboard.appex */;
@@ -213,6 +219,7 @@
 			mainGroup = F82AF42BB7858F6F225568D3;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				1CC85D75C0E4F99524D54EE0 /* XCRemoteSwiftPackageReference "AzooKeyKanaKanjiConverter" */,
 				47705071420A18D4FF3B667D /* XCLocalSwiftPackageReference "Packages/SplitKanaKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -254,6 +261,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A09925FC8B1FB955558CC9A /* AzooKeyConverter.swift in Sources */,
 				3C625230AC86F5A6515C9B8C /* KeyboardRootView.swift in Sources */,
 				892F2FDD4C9043F2EE058DEA /* KeyboardSettings.swift in Sources */,
 				F50EDE576E81DE9F27905AA4 /* KeyboardSettingsPanel.swift in Sources */,
@@ -508,7 +516,23 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		1CC85D75C0E4F99524D54EE0 /* XCRemoteSwiftPackageReference "AzooKeyKanaKanjiConverter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ensan-hcl/AzooKeyKanaKanjiConverter";
+			requirement = {
+				kind = exactVersion;
+				version = 0.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		2FA0241F74F42A62A67B1D94 /* KanaKanjiConverterModuleWithDefaultDictionary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1CC85D75C0E4F99524D54EE0 /* XCRemoteSwiftPackageReference "AzooKeyKanaKanjiConverter" */;
+			productName = KanaKanjiConverterModuleWithDefaultDictionary;
+		};
 		7B3D67B3FB5FB6641171A551 /* SplitKanaCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SplitKanaCore;
